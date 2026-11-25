@@ -7,7 +7,7 @@ Centang `[x]` saat selesai dan ikutkan perubahan file ini di commit kamu.
 
 ## Sprint 0 (setelah PR Dev 1 dan Dev 2 masuk `main`)
 - [ ] Socket.IO di server (autentikasi pakai JWT) dan client
-- [ ] Model `Booking`/`Order` dan enum status di `schema.prisma`
+- [x] Model `Booking`/`Order` dan enum status di `schema.prisma`
 
 ## Ketersediaan & order
 - [ ] Engine ketersediaan: stok = jumlah unit tipe X yang bebas di rentang tanggal (tidak disewa, tidak perawatan)
