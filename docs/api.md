@@ -12,6 +12,7 @@ Error selalu berbentuk `{ "message": "...", "details": { "field": "pesan" } }`.
 | GET/PATCH | `/auth/me` | login | profil sendiri |
 | GET | `/cars/cities` | publik | kota yang punya unit aktif |
 | GET | `/cars/types`, `/cars/types/:id` | publik | tipe mobil aktif + harga |
+| GET | `/cars/fees` | publik | biaya tambahan `{ serviceFee, deliveryFee }` (antar unit hanya lepas kunci) |
 | GET | `/availability/search?service&package&city&startAt&quantity` | publik | stok per tipe di jadwal itu |
 | POST | `/bookings` | pelanggan | buat pesanan (cek stok, cek KTP/SIM untuk lepas kunci). Opsional `pickupLat`/`pickupLng` (titik akurat, maks. 150 km dari Palu) |
 | GET | `/bookings`, `/bookings/:id` | pelanggan | pesanan sendiri |
@@ -28,7 +29,9 @@ Error selalu berbentuk `{ "message": "...", "details": { "field": "pesan" } }`.
 | GET | `/dashboard` | admin | ringkasan dashboard |
 | GET | `/users?role&q`, PATCH `/users/:id/status` | admin | daftar pengguna, blokir/aktifkan |
 | GET/POST/PATCH/DELETE | `/cars/admin/types[/:id]` | admin | CRUD tipe (hapus = nonaktif jika ada riwayat) |
-| POST | `/cars/admin/types/:id/image` | admin | foto tipe (WebP) |
+| POST | `/cars/admin/types/:id/image` | admin | foto tipe (WebP), menggantikan foto lama |
+| DELETE | `/cars/admin/types/:id/image` | admin | hapus foto tipe (kembali ke foto contoh/ilustrasi) |
+| GET/PUT | `/cars/admin/fees` | admin | lihat/ubah biaya layanan & biaya antar unit (berlaku untuk pesanan baru) |
 | GET/POST/PATCH/DELETE | `/cars/admin/units[/:id]` | admin | CRUD unit |
 | GET | `/orders?status&q`, `/orders/:id` | admin | daftar & detail + opsi unit/driver yang bebas |
 | POST | `/orders/:id/assign` | admin | `{ unitId, driverId }` → Dikonfirmasi |

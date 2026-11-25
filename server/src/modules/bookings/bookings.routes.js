@@ -6,7 +6,7 @@ import { prisma } from '../../config/prisma.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { badRequest, conflict, forbidden, notFound, parse } from '../../utils/http.js';
 import { generateBookingCode } from '../../utils/bookingCode.js';
-import { computeEndAt, PACKAGES, unitPriceFor } from '../../utils/pricing.js';
+import { computeEndAt, feesFor, getFees, PACKAGES, unitPriceFor } from '../../utils/pricing.js';
 import { availabilityByType } from '../availability/availability.service.js';
 import { searchSchema } from '../availability/availability.routes.js';
 import { bookingInclude } from '../orders/orders.routes.js';
@@ -53,6 +53,7 @@ router.post('/', async (req, res) => {
   const unitPrice = unitPriceFor(carType, data.package);
   if (unitPrice == null) throw badRequest('Paket ini tidak tersedia untuk tipe mobil tersebut');
   const endAt = computeEndAt(data.package, data.startAt, data.quantity);
+  const { serviceFee, deliveryFee } = feesFor(data.service, await getFees(prisma));
 
   // Cek stok dan simpan dalam satu transaksi Serializable supaya dua orang tidak memesan unit terakhir bersamaan.
   const booking = await prisma.$transaction(
@@ -74,7 +75,9 @@ router.post('/', async (req, res) => {
           startAt: data.startAt,
           endAt,
           unitPrice,
-          totalPrice: unitPrice * data.quantity,
+          serviceFee,
+          deliveryFee,
+          totalPrice: unitPrice * data.quantity + serviceFee + deliveryFee,
           notes: data.notes || null,
           expiresAt: new Date(Date.now() + env.paymentTimeoutMinutes * 60000),
         },
