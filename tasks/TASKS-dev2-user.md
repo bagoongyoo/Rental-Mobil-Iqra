@@ -58,3 +58,10 @@ Centang `[x]` saat selesai dan ikutkan perubahan file ini di commit kamu.
 - [x] Total pesanan di server = sewa + biaya layanan + biaya antar; item Midtrans ikut rinci
 - [x] Detail pesanan menampilkan rincian biaya jika ada
 - [x] Hasil cari menampilkan deskripsi tipe yang diisi admin
+
+## Keamanan akun
+- [x] Ganti kata sandi dengan kode verifikasi 6 angka lewat email (Gmail/SMTP) atau WhatsApp (Fonnte), mode simulasi untuk development
+- [x] Lupa kata sandi di halaman masuk (`/lupa-sandi`)
+- [x] Kode berlaku 10 menit, maks. 5x salah, kirim ulang tiap 60 detik, maks. 5 kode/jam; perangkat lain otomatis keluar
+- [x] Hapus akun: ditolak jika ada pesanan Dibayar/Dikonfirmasi/Berjalan; tagihan belum dibayar dibatalkan
+- [x] Soft delete: akun hilang di sisi pelanggan, data & riwayat tetap di database untuk admin
