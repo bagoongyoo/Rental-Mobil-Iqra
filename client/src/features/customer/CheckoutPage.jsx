@@ -22,6 +22,8 @@ export function CheckoutPage() {
   const [loc, setLoc] = useState(emptyLocation);
 
   const typeQ = useQuery({ queryKey: ['type', carTypeId], queryFn: () => api(`/cars/types/${carTypeId}`), enabled: Boolean(carTypeId) });
+  // Biaya tambahan diatur admin (menu Mobil > Biaya tambahan).
+  const feesQ = useQuery({ queryKey: ['fees'], queryFn: () => api('/cars/fees') });
   const docsQ = useQuery({ queryKey: ['my-docs'], queryFn: () => api('/documents/mine'), enabled: s.service === 'SELF_DRIVE' });
   const create = useMutation({
     mutationFn: () => api('/bookings', { method: 'POST', body: { service: s.service, package: s.package, city: s.city, startAt: wibToISO(s.date, s.time), quantity: s.qty, carTypeId, notes: form.notes, pickupAddress: loc.address, pickupLat: loc.lat, pickupLng: loc.lng } }),
@@ -33,7 +35,11 @@ export function CheckoutPage() {
   if (!type) return <ErrorNote className="m-4" error={typeQ.error || { message: t('common.notFound') }} />;
 
   const unitPrice = type[PACKAGE_PRICE_FIELD[s.package]];
-  const total = unitPrice * s.qty;
+  const rent = unitPrice * s.qty;
+  const fees = feesQ.data?.fees || { serviceFee: 0, deliveryFee: 0 };
+  const serviceFee = fees.serviceFee;
+  const deliveryFee = s.service === 'SELF_DRIVE' ? fees.deliveryFee : 0;
+  const total = rent + serviceFee + deliveryFee;
   const qtyUnit = s.package === 'MONTHLY' ? 'month' : s.package === 'YEARLY' ? 'year' : 'day';
   const approved = (docsQ.data?.documents || []).filter((d) => d.status === 'APPROVED').length;
   const needDocs = s.service === 'SELF_DRIVE' && docsQ.data && approved < 2;
@@ -98,8 +104,9 @@ export function CheckoutPage() {
               </div>
             </div>
             <dl className="space-y-1.5 border-t border-dashed border-slate-200 pt-3 text-sm dark:border-slate-700">
-              <div className="flex justify-between"><dt className="text-slate-500">{t(`package.${s.package}`)} × {s.qty}</dt><dd>{formatIDR(total)}</dd></div>
-              <div className="flex justify-between"><dt className="text-slate-500">{t('checkout.serviceFee')}</dt><dd className="font-semibold text-brand-700 dark:text-brand-400">{t('checkout.free')}</dd></div>
+              <div className="flex justify-between"><dt className="text-slate-500">{formatIDR(unitPrice)} × {t(`unit.${qtyUnit}`, { count: s.qty })}</dt><dd>{formatIDR(rent)}</dd></div>
+              <FeeRow label={t('checkout.serviceFee')} amount={serviceFee} />
+              {s.service === 'SELF_DRIVE' && <FeeRow label={t('checkout.deliveryFee')} amount={deliveryFee} />}
               <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-extrabold text-slate-900 dark:border-slate-700 dark:text-white"><dt>{t('checkout.total')}</dt><dd>{formatIDR(total)}</dd></div>
             </dl>
             {s.service === 'WITH_DRIVER' && <p className="text-xs text-slate-500">{t('checkout.driverIncludes')}</p>}
@@ -109,6 +116,16 @@ export function CheckoutPage() {
           </div>
         </aside>
       </div>
+    </div>
+  );
+}
+
+function FeeRow({ label, amount }) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex justify-between">
+      <dt className="text-slate-500">{label}</dt>
+      {amount > 0 ? <dd>{formatIDR(amount)}</dd> : <dd className="font-semibold text-brand-700 dark:text-brand-400">{t('checkout.free')}</dd>}
     </div>
   );
 }

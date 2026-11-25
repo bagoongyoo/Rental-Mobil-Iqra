@@ -197,6 +197,13 @@ export function BookingDetailPage() {
           {b.service === 'WITH_DRIVER' && <Row icon={UserRound} label={t('detail.driver')}>{b.driver ? `${b.driver.name} · ${b.driver.phone || ''}` : t('detail.notAssigned')}</Row>}
           {b.service === 'SELF_DRIVE' && <Row icon={CarFront} label={t('detail.unit')}>{b.unit ? b.unit.plate : t('detail.notAssigned')}</Row>}
           {b.notes && <Row label={t('checkout.notes')}>{b.notes}</Row>}
+          {(b.serviceFee > 0 || b.deliveryFee > 0) && (
+            <div className="space-y-1 p-4 text-sm">
+              <div className="flex justify-between"><span className="text-slate-500">{t('detail.rent')}</span><span>{formatIDR(b.unitPrice * b.quantity)}</span></div>
+              {b.serviceFee > 0 && <div className="flex justify-between"><span className="text-slate-500">{t('checkout.serviceFee')}</span><span>{formatIDR(b.serviceFee)}</span></div>}
+              {b.deliveryFee > 0 && <div className="flex justify-between"><span className="text-slate-500">{t('checkout.deliveryFee')}</span><span>{formatIDR(b.deliveryFee)}</span></div>}
+            </div>
+          )}
           <div className="flex justify-between p-4 text-base font-extrabold text-slate-900 dark:text-white">
             <span>{t('checkout.total')}</span>
             <span>{formatIDR(b.totalPrice)}</span>

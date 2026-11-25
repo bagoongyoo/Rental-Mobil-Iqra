@@ -106,6 +106,7 @@ export function SearchPage() {
               <div className="flex flex-1 flex-col p-4">
                 <p className="text-xs font-semibold text-slate-500">{r.brand} · {t(`category.${r.category}`)}</p>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">{r.name}</h3>
+                {r.description && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{r.description}</p>}
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                   <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{t('car.seats', { count: r.seats })}</span>
                   <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" />{t('car.luggage', { count: r.luggage })}</span>
