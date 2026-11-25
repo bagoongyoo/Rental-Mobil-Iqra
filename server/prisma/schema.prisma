@@ -1,0 +1,297 @@
+// Skema database Rental Mobil Iqra (MySQL 8 / MariaDB 10.6+)
+// Folder bersama: ubah lewat PR kecil dan kabari tim.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Pengguna (Dev 1) ----------
+
+enum Role {
+  ADMIN
+  CUSTOMER
+  DRIVER
+}
+
+enum UserStatus {
+  PENDING // driver baru daftar, menunggu persetujuan admin
+  ACTIVE
+  BLOCKED
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  name         String     @db.VarChar(100)
+  email        String     @unique @db.VarChar(150)
+  phone        String?    @db.VarChar(30)
+  address      String?    @db.VarChar(255)
+  passwordHash String
+  role         Role       @default(CUSTOMER)
+  status       UserStatus @default(ACTIVE)
+  language     String     @default("id") @db.VarChar(5)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  documents       Document[]     @relation("UserDocuments")
+  reviewedDocs    Document[]     @relation("DocumentReviewer")
+  bookings        Booking[]      @relation("CustomerBookings")
+  driverTasks     Booking[]      @relation("DriverBookings")
+  driverProfile   DriverProfile?
+  locationLogs    LocationLog[]
+  createdTxns     Transaction[]
+}
+
+// ---------- Dokumen KTP/SIM (Dev 2) ----------
+
+enum DocumentType {
+  KTP
+  SIM
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Document {
+  id           Int            @id @default(autoincrement())
+  userId       Int
+  type         DocumentType
+  filePath     String         @db.VarChar(255) // path privat di server/storage, tidak bisa diakses publik
+  fileSize     Int
+  status       DocumentStatus @default(PENDING)
+  rejectReason String?        @db.VarChar(255)
+  reviewedById Int?
+  reviewedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  user       User  @relation("UserDocuments", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("DocumentReviewer", fields: [reviewedById], references: [id])
+
+  @@unique([userId, type])
+}
+
+// ---------- Mobil (Dev 1) ----------
+
+enum CarCategory {
+  MPV
+  SUV
+  SEDAN
+  HATCHBACK
+  VAN
+  PREMIUM
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIC
+}
+
+model CarType {
+  id           Int          @id @default(autoincrement())
+  name         String       @db.VarChar(100)
+  brand        String       @db.VarChar(60)
+  category     CarCategory
+  seats        Int
+  luggage      Int          @default(2)
+  transmission Transmission
+  fuel         String       @default("Bensin") @db.VarChar(30)
+  color        String       @default("#0f766e") @db.VarChar(9) // warna ilustrasi jika belum ada foto
+  imagePath    String?      @db.VarChar(255)
+  description  String?      @db.Text
+  // Harga dalam rupiah. Null = paket tidak tersedia untuk tipe ini.
+  priceDriver4h  Int?
+  priceDriver12h Int?
+  priceDaily     Int?
+  priceMonthly   Int?
+  priceYearly    Int?
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  units    CarUnit[]
+  bookings Booking[]
+}
+
+enum UnitStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model CarUnit {
+  id        Int        @id @default(autoincrement())
+  carTypeId Int
+  plate     String     @unique @db.VarChar(20)
+  year      Int
+  color     String     @db.VarChar(30)
+  city      String     @db.VarChar(60)
+  odometer  Int        @default(0)
+  status    UnitStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  carType      CarType       @relation(fields: [carTypeId], references: [id])
+  bookings     Booking[]
+  maintenances Maintenance[]
+
+  @@index([carTypeId, city])
+}
+
+// ---------- Pemesanan (Dev 2 + Dev 3) ----------
+
+enum ServiceType {
+  WITH_DRIVER
+  SELF_DRIVE
+}
+
+enum RentalPackage {
+  HOURS_4
+  HOURS_12
+  DAILY
+  MONTHLY
+  YEARLY
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  PAID
+  CONFIRMED
+  ONGOING
+  COMPLETED
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+model Booking {
+  id            Int           @id @default(autoincrement())
+  code          String        @unique @db.VarChar(20)
+  customerId    Int
+  carTypeId     Int
+  unitId        Int?
+  driverId      Int?
+  service       ServiceType
+  package       RentalPackage
+  quantity      Int // jumlah hari (dengan driver/harian), bulan, atau tahun
+  city          String        @db.VarChar(60)
+  pickupAddress String        @db.VarChar(255)
+  // Titik akurat dari GPS / pin peta pelanggan (opsional). Dengan driver = titik jemput, lepas kunci = lokasi antar unit.
+  pickupLat     Float?
+  pickupLng     Float?
+  startAt       DateTime
+  endAt         DateTime
+  unitPrice     Int
+  totalPrice    Int
+  notes         String?       @db.VarChar(500)
+  status        BookingStatus @default(PENDING_PAYMENT)
+  paymentRef    String?       @db.VarChar(100)
+  paymentToken  String?       @db.VarChar(255)
+  expiresAt     DateTime? // batas waktu bayar
+  paidAt        DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  cancelReason  String?       @db.VarChar(255)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  customer     User          @relation("CustomerBookings", fields: [customerId], references: [id])
+  driver       User?         @relation("DriverBookings", fields: [driverId], references: [id])
+  carType      CarType       @relation(fields: [carTypeId], references: [id])
+  unit         CarUnit?      @relation(fields: [unitId], references: [id])
+  transactions Transaction[]
+  locationLogs LocationLog[]
+
+  @@index([carTypeId, status, startAt, endAt])
+  @@index([driverId, status])
+}
+
+// ---------- Driver & lokasi (Dev 3) ----------
+
+model DriverProfile {
+  userId        Int       @id
+  licenseNumber String    @db.VarChar(40)
+  isReady       Boolean   @default(false) // "siap jalan": hanya bisa true jika lokasi diizinkan
+  lastLat       Float?
+  lastLng       Float?
+  lastAccuracy  Float?
+  lastSeenAt    DateTime?
+  approvedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LocationLog {
+  id        Int      @id @default(autoincrement())
+  driverId  Int
+  bookingId Int?
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now())
+
+  driver  User     @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId, createdAt])
+}
+
+// ---------- Keuangan & perawatan (Dev 1) ----------
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model Transaction {
+  id            Int             @id @default(autoincrement())
+  type          TransactionType
+  category      String          @db.VarChar(60)
+  amount        Int
+  date          DateTime
+  note          String?         @db.VarChar(255)
+  bookingId     Int?
+  maintenanceId Int?            @unique
+  isAuto        Boolean         @default(false) // dibuat otomatis oleh sistem (pembayaran, perawatan, refund)
+  createdById   Int?
+  createdAt     DateTime        @default(now())
+
+  booking     Booking?     @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  maintenance Maintenance? @relation(fields: [maintenanceId], references: [id], onDelete: SetNull)
+  createdBy   User?        @relation(fields: [createdById], references: [id])
+
+  @@index([date])
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  DONE
+  CANCELLED
+}
+
+model Maintenance {
+  id            Int               @id @default(autoincrement())
+  unitId        Int
+  serviceType   String            @db.VarChar(100)
+  startDate     DateTime
+  endDate       DateTime
+  estimatedCost Int               @default(0)
+  actualCost    Int?
+  workshop      String?           @db.VarChar(100)
+  notes         String?           @db.VarChar(500)
+  status        MaintenanceStatus @default(SCHEDULED)
+  doneAt        DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  unit        CarUnit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  transaction Transaction?
+
+  @@index([unitId, startDate, endDate])
+}
