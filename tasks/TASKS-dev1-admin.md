@@ -18,6 +18,7 @@ Centang `[x]` saat selesai dan ikutkan perubahan file ini di commit kamu.
 - [x] Biaya tambahan diatur admin: biaya layanan (semua pesanan) + biaya antar unit (lepas kunci), `GET/PUT /api/cars/admin/fees`
 - [x] Ganti / hapus foto tipe, lanjut unggah foto setelah tipe baru disimpan, label "Foto contoh"
 - [ ] Manajemen pengguna: daftar pelanggan dan driver, blokir/aktifkan akun
+- [x] Tab "Akun terhapus" (email asli, alasan, jumlah pesanan/dokumen) + tanda "Pernah hapus akun" pada pelanggan dengan email/HP sama
 
 ## Keuangan
 - [ ] Model `Transaction` (jenis: pemasukan / pengeluaran, kategori, nominal, tanggal, relasi ke order atau perawatan)
