@@ -188,7 +188,9 @@ model Booking {
   startAt       DateTime
   endAt         DateTime
   unitPrice     Int
-  totalPrice    Int
+  serviceFee    Int           @default(0) // salinan biaya saat pesan, supaya perubahan tarif tidak mengubah pesanan lama
+  deliveryFee   Int           @default(0) // lepas kunci: biaya antar unit
+  totalPrice    Int // unitPrice x quantity + serviceFee + deliveryFee
   notes         String?       @db.VarChar(500)
   status        BookingStatus @default(PENDING_PAYMENT)
   paymentRef    String?       @db.VarChar(100)
@@ -211,6 +213,14 @@ model Booking {
 
   @@index([carTypeId, status, startAt, endAt])
   @@index([driverId, status])
+}
+
+// Biaya tambahan yang bisa diubah admin (satu baris, id = 1). 0 = gratis.
+model PricingSetting {
+  id          Int      @id @default(1)
+  serviceFee  Int      @default(0) // biaya layanan per pesanan
+  deliveryFee Int      @default(0) // lepas kunci: antar unit ke lokasi pelanggan
+  updatedAt   DateTime @updatedAt
 }
 
 // ---------- Driver & lokasi (Dev 3) ----------
