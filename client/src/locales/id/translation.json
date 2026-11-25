@@ -172,7 +172,8 @@
     "submit": "Pesan & lanjut bayar",
     "docsRequired": "KTP & SIM belum disetujui",
     "docsRequiredText": "Sewa lepas kunci membutuhkan KTP dan SIM yang sudah diverifikasi admin.",
-    "uploadDocs": "Unggah dokumen sekarang"
+    "uploadDocs": "Unggah dokumen sekarang",
+    "deliveryFee": "Biaya antar unit"
   },
   "pickup": {
     "driverHint": "Driver akan menghampiri Anda di titik ini.",
@@ -280,7 +281,8 @@
     "simTitle": "Pembayaran (mode simulasi)",
     "simPay": "Bayar {{amount}}",
     "simText": "Server sedang memakai mode simulasi untuk development, jadi tidak ada uang sungguhan yang ditarik. Setelah Midtrans diaktifkan, tombol ini membuka halaman pembayaran Midtrans.",
-    "paidToast": "Pembayaran berhasil"
+    "paidToast": "Pembayaran berhasil",
+    "rent": "Sewa"
   },
   "account": {
     "title": "Akun saya",
@@ -503,6 +505,21 @@
     "maintenanceDone": "Perawatan selesai, biaya masuk ke keuangan",
     "mapHint": "Posisi driver diperbarui otomatis tiap ±10 detik selama mereka siap jalan.",
     "onTask": "Sedang tugas",
-    "neverShared": "Belum pernah berbagi lokasi"
+    "neverShared": "Belum pernah berbagi lokasi",
+    "fees": "Biaya tambahan",
+    "serviceFeeHint": "Ditambahkan ke setiap pesanan. Isi 0 jika gratis.",
+    "deliveryFeeHint": "Hanya untuk lepas kunci (unit diantar ke pelanggan). Isi 0 jika gratis.",
+    "feesNote": "Perubahan berlaku untuk pesanan baru. Pesanan yang sudah dibuat tetap memakai harga lama.",
+    "photo": "Foto mobil",
+    "replacePhoto": "Ganti foto",
+    "removePhoto": "Hapus foto",
+    "photoRemoved": "Foto dihapus",
+    "confirmRemovePhoto": "Hapus foto ini? Tampilan kembali ke foto contoh atau ilustrasi.",
+    "photoAfterSave": "Simpan tipe dulu, lalu foto bisa diunggah di sini.",
+    "photoOwnHint": "Foto unggahan admin tampil di semua halaman pelanggan.",
+    "photoStockHint": "Saat ini memakai foto contoh dari Wikimedia. Unggah foto armada sendiri untuk menggantinya.",
+    "photoNoneHint": "Belum ada foto, pelanggan melihat ilustrasi. Unggah foto armada sendiri.",
+    "stockPhoto": "Foto contoh",
+    "illustration": "Ilustrasi"
   }
 }

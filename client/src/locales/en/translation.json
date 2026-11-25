@@ -178,7 +178,8 @@
     "submit": "Book & continue to payment",
     "docsRequired": "ID & licence not approved yet",
     "docsRequiredText": "Self-drive rentals need an ID and driving licence approved by our admin.",
-    "uploadDocs": "Upload documents now"
+    "uploadDocs": "Upload documents now",
+    "deliveryFee": "Delivery fee"
   },
   "pickup": {
     "driverHint": "Your driver will meet you at this point.",
@@ -286,7 +287,8 @@
     "simTitle": "Payment (simulation mode)",
     "simPay": "Pay {{amount}}",
     "simText": "The server is in simulation mode for development, so no real money is charged. Once Midtrans is enabled, this button opens the Midtrans payment page.",
-    "paidToast": "Payment successful"
+    "paidToast": "Payment successful",
+    "rent": "Rental"
   },
   "account": {
     "title": "My account",
@@ -514,6 +516,21 @@
     "maintenanceDone": "Service done, cost added to finance",
     "mapHint": "Driver positions update automatically about every 10 seconds while they're ready.",
     "onTask": "On trip",
-    "neverShared": "Never shared location"
+    "neverShared": "Never shared location",
+    "fees": "Extra fees",
+    "serviceFeeHint": "Added to every booking. Enter 0 for free.",
+    "deliveryFeeHint": "Self-drive only (car delivered to the customer). Enter 0 for free.",
+    "feesNote": "Changes apply to new bookings. Existing bookings keep their old price.",
+    "photo": "Car photo",
+    "replacePhoto": "Replace photo",
+    "removePhoto": "Remove photo",
+    "photoRemoved": "Photo removed",
+    "confirmRemovePhoto": "Remove this photo? The car falls back to the sample photo or illustration.",
+    "photoAfterSave": "Save the type first, then you can upload a photo here.",
+    "photoOwnHint": "The admin photo is shown on every customer page.",
+    "photoStockHint": "Currently using a sample photo from Wikimedia. Upload your own fleet photo to replace it.",
+    "photoNoneHint": "No photo yet, customers see an illustration. Upload your own fleet photo.",
+    "stockPhoto": "Sample photo",
+    "illustration": "Illustration"
   }
 }
