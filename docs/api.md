@@ -72,3 +72,18 @@ PENDING_PAYMENT -> PAID -> CONFIRMED -> ONGOING -> COMPLETED
    CANCELLED
 ```
 Semua perubahan status lewat `server/src/modules/orders/orders.service.js`.
+
+## Akun pelanggan (`/api/account`, Dev 2)
+
+| Metode | Path | Akses | Keterangan |
+|---|---|---|---|
+| GET | `/account/otp-channels` | publik | mode saluran kode (simulasi atau asli) |
+| POST | `/account/forgot-password/otp` | publik | `{ email, channel: EMAIL\|WHATSAPP }`, jawaban selalu sama agar email tidak bisa ditebak |
+| POST | `/account/forgot-password/reset` | publik | `{ email, code, newPassword }` |
+| POST | `/account/password/otp` | login | kirim kode ganti kata sandi `{ channel }` |
+| POST | `/account/password` | login | `{ code, newPassword }`, balas token baru (token lama di perangkat lain tidak berlaku) |
+| GET | `/account/delete-check` | pelanggan | `{ canDelete, blocking[], pendingPayment }` |
+| DELETE | `/account` | pelanggan | `{ password, confirm: "HAPUS", reason? }`, soft delete |
+
+Admin: `GET /api/users?role=CUSTOMER&deleted=1` daftar akun terhapus; daftar biasa berisi `previousDeletedId` jika email/HP sama dengan akun yang pernah dihapus.
+Kode: 6 angka, berlaku 10 menit, maks. 5x salah, kirim ulang tiap 60 detik, maks. 5 kode per jam. Saat mode simulasi (di luar production) respons berisi `devCode`.

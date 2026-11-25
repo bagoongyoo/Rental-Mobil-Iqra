@@ -59,7 +59,8 @@ router.get('/:id/file', async (req, res) => {
 router.get('/', requireRole('ADMIN'), async (req, res) => {
   const status = req.query.status ? String(req.query.status) : 'PENDING';
   const documents = await prisma.document.findMany({
-    where: status === 'ALL' ? {} : { status },
+    // Dokumen milik akun yang sudah dihapus tidak perlu diverifikasi lagi (tetap tersimpan, terlihat di filter ALL).
+    where: status === 'ALL' ? {} : { status, ...(status === 'PENDING' ? { user: { status: { not: 'DELETED' } } } : {}) },
     include: { user: { select: { id: true, name: true, email: true, phone: true } } },
     orderBy: { updatedAt: 'asc' },
   });
