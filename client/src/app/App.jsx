@@ -13,6 +13,7 @@ import { AccountPage } from '../features/customer/AccountPage';
 import { DashboardPage } from '../features/customer/DashboardPage';
 import { PhotoCreditsPage } from '../features/customer/PhotoCreditsPage';
 import { LoginPage, RegisterPage } from '../features/customer/AuthPages';
+import { ForgotPasswordPage } from '../features/customer/AccountSecurity';
 
 // Panel admin dan driver dimuat terpisah supaya halaman pelanggan tetap ringan.
 const AdminApp = lazy(() => import('../features/admin/AdminApp'));
@@ -36,6 +37,7 @@ export function App() {
               <Route path="kredit-foto" element={<PhotoCreditsPage />} />
               <Route path="masuk" element={<LoginPage />} />
               <Route path="daftar" element={<RegisterPage />} />
+              <Route path="lupa-sandi" element={<ForgotPasswordPage />} />
               <Route path="dasbor" element={<RequireRole role="CUSTOMER"><DashboardPage /></RequireRole>} />
               <Route path="pesan" element={<RequireRole role="CUSTOMER"><CheckoutPage /></RequireRole>} />
               <Route path="pesanan" element={<RequireRole role="CUSTOMER"><BookingsPage /></RequireRole>} />

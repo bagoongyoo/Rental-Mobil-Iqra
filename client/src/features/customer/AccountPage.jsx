@@ -8,6 +8,7 @@ import { useAuth } from '../../lib/auth';
 import { usePrefs } from '../../lib/prefs';
 import { Button, ErrorNote, Field, Segmented, toast } from '../../components/ui';
 import { DocumentUpload } from './DocumentUpload';
+import { ChangePasswordCard, DeleteAccountCard } from './AccountSecurity';
 
 export function AccountPage() {
   const { t } = useTranslation();
@@ -73,6 +74,8 @@ export function AccountPage() {
         </div>
       </section>
 
+      <ChangePasswordCard />
+
       <Button
         variant="ghost"
         className="w-full !text-red-600 dark:!text-red-400"
@@ -83,6 +86,8 @@ export function AccountPage() {
       >
         <LogOut className="h-4 w-4" /> {t('nav.logout')}
       </Button>
+
+      <DeleteAccountCard />
     </div>
   );
 }

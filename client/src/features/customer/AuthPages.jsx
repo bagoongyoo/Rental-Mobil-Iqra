@@ -49,6 +49,7 @@ export function LoginPage() {
       >
         <Field label="Email"><input className="input" type="email" autoComplete="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
         <Field label={t('auth.password')}><input className="input" type="password" autoComplete="current-password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
+        <p className="-mt-1 text-right text-sm"><Link to="/lupa-sandi" className="font-semibold text-brand-700 dark:text-brand-400">{t('security.forgotLink')}</Link></p>
         <ErrorNote error={m.error} />
         <Button type="submit" size="lg" className="w-full" loading={m.isPending}>{t('nav.login')}</Button>
       </form>
