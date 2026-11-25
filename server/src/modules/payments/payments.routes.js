@@ -38,7 +38,12 @@ router.post('/:bookingId/pay', requireAuth, requireRole('CUSTOMER'), async (req,
     },
     body: JSON.stringify({
       transaction_details: { order_id: booking.code, gross_amount: booking.totalPrice },
-      item_details: [{ id: String(booking.carTypeId), name: `${booking.carType.name} (${booking.package})`.slice(0, 50), price: booking.unitPrice, quantity: booking.quantity }],
+      // Jumlah item_details harus sama dengan gross_amount, jadi biaya tambahan ikut jadi item.
+      item_details: [
+        { id: String(booking.carTypeId), name: `${booking.carType.name} (${booking.package})`.slice(0, 50), price: booking.unitPrice, quantity: booking.quantity },
+        ...(booking.serviceFee > 0 ? [{ id: 'SERVICE_FEE', name: 'Biaya layanan', price: booking.serviceFee, quantity: 1 }] : []),
+        ...(booking.deliveryFee > 0 ? [{ id: 'DELIVERY_FEE', name: 'Biaya antar unit', price: booking.deliveryFee, quantity: 1 }] : []),
+      ],
       customer_details: { first_name: booking.customer.name, email: booking.customer.email, phone: booking.customer.phone || undefined },
       expiry: { unit: 'minutes', duration: Math.max(1, Math.round((booking.expiresAt - Date.now()) / 60000)) },
     }),
