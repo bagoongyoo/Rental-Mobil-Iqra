@@ -67,7 +67,7 @@ export function RegisterPage() {
     mutationFn: () => api('/auth/register', { method: 'POST', body: form }),
     onSuccess: ({ token, user }) => {
       login(token, user);
-      navigate(params.get('next') || '/', { replace: true });
+      navigate(params.get('next') || '/dasbor', { replace: true });
     },
   });
   const err = m.error?.details || {};
