@@ -1,0 +1,306 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Role {
+  ADMIN
+  CUSTOMER
+  DRIVER
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIC
+}
+
+enum CarUnitStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+}
+
+enum ServiceType {
+  WITH_DRIVER
+  SELF_DRIVE
+}
+
+enum PackageType {
+  HOURS_4
+  HOURS_12
+  DAILY
+  MONTHLY
+  YEARLY
+}
+
+enum OrderStatus {
+  WAITING_PAYMENT
+  PAID
+  CONFIRMED
+  ONGOING
+  COMPLETED
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  EXPIRED
+  FAILED
+  REFUNDED
+}
+
+enum DocumentType {
+  KTP
+  SIM
+  PHOTO
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ==========================================
+// MODELS - DEV 1 (Auth, Users, Cars, Finance, Maintenance)
+// ==========================================
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String
+  phone        String?
+  address      String?  @db.Text
+  role         Role     @default(CUSTOMER)
+  isActive     Boolean  @default(true)
+  isApproved   Boolean  @default(true) // untuk DRIVER: false saat daftar, true setelah disetujui admin
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relasi
+  documents      UserDocument[]
+  driverProfile  DriverProfile?
+  customerOrders Order[]             @relation("CustomerOrders")
+  driverOrders   Order[]             @relation("DriverOrders")
+  locationLogs   DriverLocationLog[]
+
+  @@map("users")
+}
+
+model CarType {
+  id                    Int          @id @default(autoincrement())
+  name                  String
+  capacity              Int
+  transmission          Transmission @default(AUTOMATIC)
+  photoUrl              String?
+  description           String?      @db.Text
+  price4HoursDriver     Int          @default(0)
+  price12HoursDriver    Int          @default(0)
+  priceDailySelfDrive   Int          @default(0)
+  priceMonthlySelfDrive Int          @default(0)
+  priceYearlySelfDrive  Int          @default(0)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  // Relasi
+  units  CarUnit[]
+  orders Order[]
+
+  @@map("car_types")
+}
+
+model CarUnit {
+  id          Int           @id @default(autoincrement())
+  plateNumber String        @unique
+  carTypeId   Int
+  year        Int
+  color       String
+  status      CarUnitStatus @default(AVAILABLE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relasi
+  carType      CarType       @relation(fields: [carTypeId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  maintenances Maintenance[]
+
+  @@map("car_units")
+}
+
+model Maintenance {
+  id            Int               @id @default(autoincrement())
+  carUnitId     Int
+  serviceType   String
+  scheduledDate DateTime
+  completedDate DateTime?
+  cost          Int               @default(0)
+  status        MaintenanceStatus @default(SCHEDULED)
+  notes         String?           @db.Text
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relasi
+  carUnit      CarUnit       @relation(fields: [carUnitId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("maintenances")
+}
+
+model Transaction {
+  id              Int             @id @default(autoincrement())
+  type            TransactionType
+  category        String
+  amount          Int
+  description     String?         @db.Text
+  transactionDate DateTime        @default(now())
+  orderId         Int?
+  maintenanceId   Int?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relasi
+  order       Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  maintenance Maintenance? @relation(fields: [maintenanceId], references: [id], onDelete: SetNull)
+
+  @@map("transactions")
+}
+
+// ==========================================
+// MODELS - DEV 2 (Documents & Payments)
+// ==========================================
+
+model UserDocument {
+  id              Int                @id @default(autoincrement())
+  userId          Int
+  type            DocumentType
+  filePath        String
+  status          VerificationStatus @default(PENDING)
+  rejectionReason String?            @db.Text
+  verifiedAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  // Relasi
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_documents")
+}
+
+model Payment {
+  id              Int           @id @default(autoincrement())
+  orderId         Int           @unique
+  midtransOrderId String        @unique
+  snapToken       String?
+  redirectUrl     String?
+  amount          Int
+  paymentType     String?
+  status          PaymentStatus @default(PENDING)
+  paidAt          DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relasi
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// ==========================================
+// MODELS - DEV 3 (Orders, Driver Profile & Live Tracking)
+// ==========================================
+
+model Order {
+  id               Int         @id @default(autoincrement())
+  orderCode        String      @unique
+  customerId       Int
+  carTypeId        Int
+  carUnitId        Int?
+  driverId         Int?
+  serviceType      ServiceType
+  packageType      PackageType
+  pickupCity       String
+  pickupAddress    String      @db.Text
+  startTime        DateTime
+  endTime          DateTime
+  duration         Int         @default(1)
+  totalPrice       Int
+  notes            String?     @db.Text
+  status           OrderStatus @default(WAITING_PAYMENT)
+  paymentExpiresAt DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  // Relasi
+  customer     User                @relation("CustomerOrders", fields: [customerId], references: [id])
+  carType      CarType             @relation(fields: [carTypeId], references: [id])
+  carUnit      CarUnit?            @relation(fields: [carUnitId], references: [id], onDelete: SetNull)
+  driver       User?               @relation("DriverOrders", fields: [driverId], references: [id], onDelete: SetNull)
+  payment      Payment?
+  transactions Transaction[]
+  locationLogs DriverLocationLog[]
+
+  @@index([carTypeId, startTime, endTime, status])
+  @@map("orders")
+}
+
+model DriverProfile {
+  id             Int                @id @default(autoincrement())
+  userId         Int                @unique
+  licenseNumber  String
+  simFilePath    String?
+  photoFilePath  String?
+  approvalStatus VerificationStatus @default(PENDING)
+  isReady        Boolean            @default(false)
+  lastLat        Float?
+  lastLng        Float?
+  lastLocationAt DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  // Relasi
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("driver_profiles")
+}
+
+model DriverLocationLog {
+  id         Int      @id @default(autoincrement())
+  driverId   Int
+  orderId    Int?
+  lat        Float
+  lng        Float
+  recordedAt DateTime @default(now())
+
+  // Relasi
+  driver User   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  order  Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([driverId, recordedAt])
+  @@index([orderId, recordedAt])
+  @@map("driver_location_logs")
+}
