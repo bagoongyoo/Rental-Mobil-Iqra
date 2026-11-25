@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ShieldAlert, CalendarClock, MapPin, UserRound, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, CalendarClock, UserRound, ArrowLeft, NotebookPen } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatDateTime, formatIDR, wibToISO } from '../../lib/format';
 import { PACKAGE_PRICE_FIELD } from '../../lib/constants';
 import { Button, CarImage, ErrorNote, Field, Spinner } from '../../components/ui';
 import { searchFromParams } from './SearchForm';
+import { emptyLocation, PickupLocation } from './PickupLocation';
 
 export function CheckoutPage() {
   const { t } = useTranslation();
@@ -17,12 +18,13 @@ export function CheckoutPage() {
   const s = searchFromParams(params);
   const carTypeId = Number(params.get('carTypeId'));
   const user = useAuth((st) => st.user);
-  const [form, setForm] = useState({ pickupAddress: '', notes: '' });
+  const [form, setForm] = useState({ notes: '' });
+  const [loc, setLoc] = useState(emptyLocation);
 
   const typeQ = useQuery({ queryKey: ['type', carTypeId], queryFn: () => api(`/cars/types/${carTypeId}`), enabled: Boolean(carTypeId) });
   const docsQ = useQuery({ queryKey: ['my-docs'], queryFn: () => api('/documents/mine'), enabled: s.service === 'SELF_DRIVE' });
   const create = useMutation({
-    mutationFn: () => api('/bookings', { method: 'POST', body: { service: s.service, package: s.package, city: s.city, startAt: wibToISO(s.date, s.time), quantity: s.qty, carTypeId, ...form } }),
+    mutationFn: () => api('/bookings', { method: 'POST', body: { service: s.service, package: s.package, city: s.city, startAt: wibToISO(s.date, s.time), quantity: s.qty, carTypeId, notes: form.notes, pickupAddress: loc.address, pickupLat: loc.lat, pickupLng: loc.lng } }),
     onSuccess: ({ booking }) => navigate(`/pesanan/${booking.id}`, { replace: true }),
   });
 
@@ -71,20 +73,10 @@ export function CheckoutPage() {
             </div>
           </section>
 
-          <section className="card space-y-3 p-4">
-            <h2 className="flex items-center gap-2 font-bold text-slate-900 dark:text-white"><MapPin className="h-4 w-4 text-brand-600" />{s.service === 'WITH_DRIVER' ? t('checkout.pickup') : t('checkout.delivery')}</h2>
-            <Field label={t('checkout.address')} error={create.error?.details?.pickupAddress}>
-              <textarea
-                className="input"
-                rows={2}
-                required
-                minLength={5}
-                placeholder={t('checkout.addressPlaceholder', { city: s.city })}
-                value={form.pickupAddress}
-                onChange={(e) => setForm({ ...form, pickupAddress: e.target.value })}
-              />
-            </Field>
-            <Field label={t('checkout.notes')} hint={t('checkout.notesHint')}>
+          <PickupLocation service={s.service} city={s.city} value={loc} onChange={setLoc} error={create.error?.details?.pickupAddress} />
+
+          <section className="card p-4">
+            <Field label={<span className="flex items-center gap-1.5"><NotebookPen className="h-3.5 w-3.5" />{t('checkout.notes')}</span>} hint={t('checkout.notesHint')}>
               <textarea className="input" rows={2} maxLength={500} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
           </section>
@@ -92,7 +84,7 @@ export function CheckoutPage() {
         </form>
 
         <aside className="card overflow-hidden lg:sticky lg:top-20">
-          <CarImage type={type} className="aspect-[16/8]" />
+          <CarImage type={type} credit className="aspect-[16/9]" sizes="(min-width: 1024px) 360px, 100vw" />
           <div className="space-y-3 p-4">
             <div>
               <p className="text-xs font-semibold text-slate-500">{type.brand} · {t(`service.${s.service}`)}</p>
