@@ -1,84 +1,62 @@
-// Dokumen KTP/SIM (Dev 2). File dikompres di browser, lalu di server diubah ke WebP dan disimpan privat.
-import { Router } from 'express';
-import path from 'node:path';
-import fs from 'node:fs/promises';
-import sharp from 'sharp';
-import { z } from 'zod';
-import { prisma } from '../../config/prisma.js';
-import { PRIVATE_STORAGE } from '../../config/paths.js';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
-import { imageUpload } from '../../middleware/upload.js';
-import { badRequest, forbidden, notFound, parse } from '../../utils/http.js';
+// Dokumen KTP/SIM (Dev 2): pelanggan upload & cek status, admin verifikasi.
+const express = require('express');
+const multer = require('multer');
+const { z } = require('zod');
+const { requireAuth, requireRole } = require('../../middleware/auth.middleware');
+const documentsService = require('./documents.service');
 
-const router = Router();
+const router = express.Router();
 router.use(requireAuth);
-const DOC_DIR = path.join(PRIVATE_STORAGE, 'documents');
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // maks. 5 MB sebelum diubah ke WebP
+  fileFilter: (req, file, cb) => cb(null, /^image\//.test(file.mimetype)),
+});
+
+function badRequest(message) {
+  const err = new Error(message);
+  err.statusCode = 400;
+  return err;
+}
+
+// GET /api/documents/mine
 router.get('/mine', async (req, res) => {
-  const documents = await prisma.document.findMany({
-    where: { userId: req.user.id },
-    select: { id: true, type: true, status: true, rejectReason: true, fileSize: true, updatedAt: true },
-  });
-  res.json({ documents });
+  res.json({ success: true, data: await documentsService.listMine(req.user.id) });
 });
 
-router.post('/', imageUpload.single('file'), async (req, res) => {
-  const { type } = parse(z.object({ type: z.enum(['KTP', 'SIM']) }), req.body);
-  if (!req.file) throw badRequest('Foto dokumen wajib diisi');
-  const existing = await prisma.document.findUnique({ where: { userId_type: { userId: req.user.id, type } } });
-  if (existing?.status === 'APPROVED') throw badRequest('Dokumen ini sudah disetujui');
-
-  const filename = `${req.user.id}-${type.toLowerCase()}-${Date.now()}.webp`;
-  const info = await sharp(req.file.buffer)
-    .rotate()
-    .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 70 })
-    .toFile(path.join(DOC_DIR, filename));
-
-  const document = await prisma.document.upsert({
-    where: { userId_type: { userId: req.user.id, type } },
-    create: { userId: req.user.id, type, filePath: filename, fileSize: info.size },
-    update: { filePath: filename, fileSize: info.size, status: 'PENDING', rejectReason: null, reviewedAt: null, reviewedById: null },
-    select: { id: true, type: true, status: true, fileSize: true, updatedAt: true },
-  });
-  if (existing) await fs.rm(path.join(DOC_DIR, existing.filePath), { force: true });
-  res.status(201).json({ document });
+// POST /api/documents (multipart: type=KTP|SIM, file=<gambar>)
+router.post('/', upload.single('file'), async (req, res) => {
+  const parsed = z.object({ type: z.enum(['KTP', 'SIM']) }).safeParse(req.body || {});
+  if (!parsed.success) throw badRequest('Jenis dokumen harus KTP atau SIM.');
+  const document = await documentsService.upload(req.user.id, parsed.data.type, req.file?.buffer);
+  res.status(201).json({ success: true, data: document });
 });
 
-// File hanya bisa dilihat pemiliknya atau admin.
+// GET /api/documents/:id/file — gambar dokumen (pemilik atau admin)
 router.get('/:id/file', async (req, res) => {
-  const doc = await prisma.document.findUnique({ where: { id: Number(req.params.id) } });
-  if (!doc) throw notFound();
-  if (req.user.role !== 'ADMIN' && doc.userId !== req.user.id) throw forbidden();
+  const filePath = await documentsService.getFilePath(req.user, req.params.id);
   res.set('Cache-Control', 'private, no-store');
-  res.type('image/webp').sendFile(path.join(DOC_DIR, path.basename(doc.filePath)));
+  res.type('image/webp').sendFile(filePath);
 });
 
 // ---------- Admin ----------
 
+// GET /api/documents?status=PENDING|APPROVED|REJECTED|ALL
 router.get('/', requireRole('ADMIN'), async (req, res) => {
-  const status = req.query.status ? String(req.query.status) : 'PENDING';
-  const documents = await prisma.document.findMany({
-    // Dokumen milik akun yang sudah dihapus tidak perlu diverifikasi lagi (tetap tersimpan, terlihat di filter ALL).
-    where: status === 'ALL' ? {} : { status, ...(status === 'PENDING' ? { user: { status: { not: 'DELETED' } } } : {}) },
-    include: { user: { select: { id: true, name: true, email: true, phone: true } } },
-    orderBy: { updatedAt: 'asc' },
-  });
-  res.json({ documents: documents.map(({ filePath, ...d }) => d) });
+  const status = String(req.query.status || 'PENDING').toUpperCase();
+  if (!['PENDING', 'APPROVED', 'REJECTED', 'ALL'].includes(status)) throw badRequest('Status tidak valid.');
+  res.json({ success: true, data: await documentsService.listForAdmin(status) });
 });
 
+// PATCH /api/documents/:id/review { status: APPROVED|REJECTED, rejectionReason }
 router.patch('/:id/review', requireRole('ADMIN'), async (req, res) => {
-  const data = parse(
-    z.object({ status: z.enum(['APPROVED', 'REJECTED']), rejectReason: z.string().trim().max(255).optional() })
-      .refine((v) => v.status === 'APPROVED' || v.rejectReason, { message: 'Isi alasan penolakan', path: ['rejectReason'] }),
-    req.body,
-  );
-  const document = await prisma.document.update({
-    where: { id: Number(req.params.id) },
-    data: { status: data.status, rejectReason: data.status === 'REJECTED' ? data.rejectReason : null, reviewedById: req.user.id, reviewedAt: new Date() },
-    select: { id: true, type: true, status: true, rejectReason: true, userId: true },
-  });
-  res.json({ document });
+  const parsed = z
+    .object({ status: z.enum(['APPROVED', 'REJECTED']), rejectionReason: z.string().trim().max(255).optional() })
+    .refine((v) => v.status === 'APPROVED' || v.rejectionReason, { message: 'Isi alasan penolakan.' })
+    .safeParse(req.body || {});
+  if (!parsed.success) throw badRequest(parsed.error.issues[0]?.message || 'Data tidak valid.');
+  res.json({ success: true, data: await documentsService.review(req.params.id, parsed.data) });
 });
 
-export default router;
+module.exports = router;

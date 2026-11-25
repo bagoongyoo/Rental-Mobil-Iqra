@@ -1,84 +1,224 @@
-// Engine ketersediaan (Dev 3).
-// Stok tipe X di kota K untuk rentang [start, end) =
-//   unit aktif tipe X di kota K yang tidak sedang dijadwalkan perawatan di rentang itu
-//   dikurangi order aktif yang bentrok di rentang itu (sudah atau belum ditugaskan unit).
-import { prisma } from '../../config/prisma.js';
+const prisma = require('../../config/db');
 
-export const ACTIVE_STATUSES = ['PENDING_PAYMENT', 'PAID', 'CONFIRMED', 'ONGOING'];
+const ACTIVE_ORDER_STATUSES = ['WAITING_PAYMENT', 'PAID', 'CONFIRMED', 'ONGOING'];
+const ACTIVE_MAINTENANCE_STATUSES = ['SCHEDULED', 'IN_PROGRESS'];
 
-/** Kondisi Prisma untuk order yang masih memakan stok dan bentrok dengan [start, end). */
-export function overlappingBookingWhere(start, end) {
-  const now = new Date();
-  return {
-    startAt: { lt: end },
-    endAt: { gt: start },
-    OR: [
-      { status: { in: ['PAID', 'CONFIRMED', 'ONGOING'] } },
-      { status: 'PENDING_PAYMENT', expiresAt: { gt: now } },
-    ],
-  };
+/**
+ * Normalisasi rentang tanggal pencarian ketersediaan
+ */
+function parseDateRange(startTime, endTime) {
+  const start = startTime ? new Date(startTime) : new Date();
+  const end = endTime ? new Date(endTime) : new Date(start.getTime() + 24 * 60 * 60 * 1000);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    const err = new Error('Format tanggal startTime atau endTime tidak valid.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (end <= start) {
+    const err = new Error('Waktu selesai (endTime) harus lebih besar dari waktu mulai (startTime).');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  return { start, end };
 }
 
-/** Unit tipe tertentu yang bebas perawatan di rentang waktu. */
-export async function eligibleUnits({ carTypeId, city, start, end }) {
-  return prisma.carUnit.findMany({
-    where: {
-      carTypeId,
-      ...(city ? { city } : {}),
-      status: 'ACTIVE',
-      maintenances: { none: { status: 'SCHEDULED', startDate: { lt: end }, endDate: { gt: start } } },
+/**
+ * Engine Ketersediaan (Dev 3):
+ * Stok = jumlah unit tipe X yang bebas di rentang tanggal (tidak sedang disewa & tidak sedang perawatan)
+ */
+async function searchAvailableCarTypes(filters = {}) {
+  const { start, end } = parseDateRange(filters.startTime, filters.endTime);
+
+  const whereCarType = {};
+  if (filters.carTypeId) {
+    whereCarType.id = Number(filters.carTypeId);
+  }
+  if (filters.transmission) {
+    whereCarType.transmission = String(filters.transmission).toUpperCase();
+  }
+  if (filters.minCapacity) {
+    whereCarType.capacity = { gte: Number(filters.minCapacity) };
+  }
+
+  // Ambil semua tipe mobil beserta unit, jadwal maintenance di rentang tanggal, dan order aktif yang beririsan
+  const carTypes = await prisma.carType.findMany({
+    where: whereCarType,
+    include: {
+      units: {
+        include: {
+          maintenances: {
+            where: {
+              status: { in: ACTIVE_MAINTENANCE_STATUSES },
+              scheduledDate: {
+                gte: new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0),
+                lte: new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59),
+              },
+            },
+            select: { id: true, scheduledDate: true, status: true },
+          },
+        },
+      },
+      orders: {
+        where: {
+          status: { in: ACTIVE_ORDER_STATUSES },
+          startTime: { lt: end },
+          endTime: { gt: start },
+        },
+        select: {
+          id: true,
+          carUnitId: true,
+          status: true,
+          startTime: true,
+          endTime: true,
+        },
+      },
     },
-    orderBy: { plate: 'asc' },
-  });
-}
-
-/** Map carTypeId -> jumlah unit tersedia. */
-export async function availabilityByType({ city, start, end, excludeBookingId, db = prisma }) {
-  const units = await db.carUnit.findMany({
-    where: {
-      ...(city ? { city } : {}),
-      status: 'ACTIVE',
-      carType: { isActive: true },
-      maintenances: { none: { status: 'SCHEDULED', startDate: { lt: end }, endDate: { gt: start } } },
-    },
-    select: { id: true, carTypeId: true },
-  });
-  const bookings = await db.booking.findMany({
-    where: {
-      ...overlappingBookingWhere(start, end),
-      ...(city ? { city } : {}),
-      ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}),
-    },
-    select: { carTypeId: true },
-  });
-  const stock = new Map();
-  for (const u of units) stock.set(u.carTypeId, (stock.get(u.carTypeId) || 0) + 1);
-  for (const b of bookings) stock.set(b.carTypeId, (stock.get(b.carTypeId) || 0) - 1);
-  return stock;
-}
-
-/** Unit yang bisa ditugaskan ke sebuah order (bebas perawatan dan tidak dipakai order lain). */
-export async function assignableUnits(booking) {
-  const units = await eligibleUnits({ carTypeId: booking.carTypeId, city: booking.city, start: booking.startAt, end: booking.endAt });
-  const taken = await prisma.booking.findMany({
-    where: { ...overlappingBookingWhere(booking.startAt, booking.endAt), id: { not: booking.id }, unitId: { not: null } },
-    select: { unitId: true },
-  });
-  const takenIds = new Set(taken.map((t) => t.unitId));
-  return units.filter((u) => !takenIds.has(u.id));
-}
-
-/** Driver aktif yang tidak punya tugas lain di rentang waktu order. */
-export async function assignableDrivers(booking) {
-  const drivers = await prisma.user.findMany({
-    where: { role: 'DRIVER', status: 'ACTIVE' },
-    select: { id: true, name: true, phone: true, driverProfile: { select: { isReady: true, lastSeenAt: true } } },
     orderBy: { name: 'asc' },
   });
-  const busy = await prisma.booking.findMany({
-    where: { ...overlappingBookingWhere(booking.startAt, booking.endAt), id: { not: booking.id }, driverId: { not: null } },
-    select: { driverId: true },
+
+  return carTypes.map((ct) => {
+    // Unit yang sudah di-assign ke order aktif di rentang waktu ini
+    const busyUnitIds = new Set(
+      ct.orders.filter((o) => o.carUnitId !== null).map((o) => o.carUnitId)
+    );
+
+    // Order aktif untuk tipe mobil ini yang belum di-assign plat unitnya (masih WAITING_PAYMENT / PAID)
+    const unassignedActiveOrderCount = ct.orders.filter((o) => o.carUnitId === null).length;
+
+    // Filter unit fisik yang benar-benar bebas (bukan status MAINTENANCE, tidak ada jadwal servis, tidak sedang dipakai order)
+    const freeUnits = ct.units.filter((unit) => {
+      if (unit.status === 'MAINTENANCE') return false;
+      if (unit.maintenances && unit.maintenances.length > 0) return false;
+      if (busyUnitIds.has(unit.id)) return false;
+      return true;
+    });
+
+    // Stok bersih = jumlah unit bebas dikurangi order aktif yang belum ditugaskan unit spesifik
+    const availableStock = Math.max(0, freeUnits.length - unassignedActiveOrderCount);
+
+    return {
+      id: ct.id,
+      name: ct.name,
+      capacity: ct.capacity,
+      transmission: ct.transmission,
+      photoUrl: ct.photoUrl,
+      description: ct.description,
+      prices: {
+        price4HoursDriver: ct.price4HoursDriver,
+        price12HoursDriver: ct.price12HoursDriver,
+        priceDailySelfDrive: ct.priceDailySelfDrive,
+        priceMonthlySelfDrive: ct.priceMonthlySelfDrive,
+        priceYearlySelfDrive: ct.priceYearlySelfDrive,
+      },
+      totalUnits: ct.units.length,
+      availableStock,
+      isAvailable: availableStock > 0,
+      freeUnits: freeUnits.map((u) => ({
+        id: u.id,
+        plateNumber: u.plateNumber,
+        year: u.year,
+        color: u.color,
+        status: u.status,
+      })),
+    };
   });
-  const busyIds = new Set(busy.map((b) => b.driverId));
-  return drivers.filter((d) => !busyIds.has(d.id));
 }
+
+/**
+ * Mengambil daftar unit (plat nomor) yang bebas untuk tipe mobil tertentu di rentang waktu order
+ * (Dipakai Admin saat menugaskan plat nomor ke order yang sudah PAID)
+ */
+async function getFreeUnitsByCarType(carTypeId, startTime, endTime, excludeOrderId = null) {
+  const { start, end } = parseDateRange(startTime, endTime);
+
+  const units = await prisma.carUnit.findMany({
+    where: {
+      carTypeId: Number(carTypeId),
+      status: { not: 'MAINTENANCE' },
+    },
+    include: {
+      maintenances: {
+        where: {
+          status: { in: ACTIVE_MAINTENANCE_STATUSES },
+          scheduledDate: {
+            gte: new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0),
+            lte: new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59),
+          },
+        },
+      },
+      orders: {
+        where: {
+          ...(excludeOrderId ? { id: { not: Number(excludeOrderId) } } : {}),
+          status: { in: ACTIVE_ORDER_STATUSES },
+          startTime: { lt: end },
+          endTime: { gt: start },
+        },
+      },
+    },
+    orderBy: { plateNumber: 'asc' },
+  });
+
+  return units
+    .filter((u) => u.maintenances.length === 0 && u.orders.length === 0)
+    .map((u) => ({
+      id: u.id,
+      plateNumber: u.plateNumber,
+      carTypeId: u.carTypeId,
+      year: u.year,
+      color: u.color,
+      status: u.status,
+    }));
+}
+
+/**
+ * Mengambil daftar driver aktif & sudah disetujui yang tidak bentrok jadwal di rentang tanggal order
+ */
+async function getFreeDrivers(startTime, endTime, excludeOrderId = null) {
+  const { start, end } = parseDateRange(startTime, endTime);
+
+  const drivers = await prisma.user.findMany({
+    where: {
+      role: 'DRIVER',
+      isActive: true,
+      isApproved: true,
+      driverProfile: {
+        approvalStatus: 'APPROVED',
+      },
+    },
+    include: {
+      driverProfile: true,
+      driverOrders: {
+        where: {
+          ...(excludeOrderId ? { id: { not: Number(excludeOrderId) } } : {}),
+          status: { in: ['CONFIRMED', 'ONGOING'] },
+          startTime: { lt: end },
+          endTime: { gt: start },
+        },
+      },
+    },
+    orderBy: { name: 'asc' },
+  });
+
+  return drivers
+    .filter((d) => d.driverOrders.length === 0)
+    .map((d) => ({
+      id: d.id,
+      name: d.name,
+      email: d.email,
+      phone: d.phone,
+      licenseNumber: d.driverProfile?.licenseNumber || null,
+      isReady: d.driverProfile?.isReady || false,
+      lastLat: d.driverProfile?.lastLat || null,
+      lastLng: d.driverProfile?.lastLng || null,
+    }));
+}
+
+module.exports = {
+  parseDateRange,
+  searchAvailableCarTypes,
+  getFreeUnitsByCarType,
+  getFreeDrivers,
+};
