@@ -11,7 +11,7 @@ const router = Router();
 router.use(requireAuth, requireRole('ADMIN'));
 
 export const bookingInclude = {
-  customer: { select: { id: true, name: true, email: true, phone: true } },
+  customer: { select: { id: true, name: true, email: true, phone: true, status: true, deletedEmail: true } },
   driver: { select: { id: true, name: true, phone: true } },
   carType: { select: { id: true, name: true, brand: true, category: true, color: true, imagePath: true, seats: true, transmission: true } },
   unit: { select: { id: true, plate: true, color: true, year: true } },
