@@ -98,7 +98,7 @@ export function SearchPage() {
           return (
             <article key={r.id} className={`card flex flex-col overflow-hidden ${soldOut ? 'opacity-60' : ''}`}>
               <div className="relative">
-                <CarImage type={r} className="aspect-[16/7] sm:aspect-[16/9]" />
+                <CarImage type={r} credit className="aspect-[16/9]" />
                 <div className="absolute top-3 left-3">
                   {soldOut ? <Badge tone="red">{t('search.soldOut')}</Badge> : r.available <= 2 ? <Badge tone="amber">{t('search.left', { count: r.available })}</Badge> : <Badge tone="brand">{t('search.available')}</Badge>}
                 </div>
