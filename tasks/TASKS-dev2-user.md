@@ -37,3 +37,18 @@ Centang `[x]` saat selesai dan ikutkan perubahan file ini di commit kamu.
 - Auth dan model user dari Dev 1
 - Ketersediaan unit dan status order dari Dev 3
 - Semua teks UI masuk file `locales/` (tim lain menambah key, kamu yang merapikan)
+
+## Dashboard pelanggan (`/dasbor`)
+- [x] API ringkasan `GET /api/bookings/dashboard` (sewa berjalan, jadwal terdekat, tagihan, dokumen, statistik)
+- [x] Halaman dashboard: sapaan, statistik, tagihan + hitung mundur, sewa berjalan (progres, driver, lacak), jadwal berikutnya
+- [x] Pesan cepat (dengan driver / lepas kunci, pesan lagi mobil terakhir), pesanan terakhir
+- [x] Status verifikasi KTP/SIM, kelengkapan profil, tombol WhatsApp admin
+- [x] Menu Dasbor di navigasi, pelanggan diarahkan ke `/dasbor` setelah masuk/daftar
+- [x] Lokasi Palu, Sulawesi Tengah: kota default, titik jemput populer di checkout, teks beranda, zona waktu WITA
+
+## Foto mobil & lokasi akurat
+- [x] Foto contoh bawaan per model (Wikimedia Commons, WebP 800/400 px) di `client/public/cars/`, halaman `/kredit-foto`
+- [x] Checkout: lokasi akurat (GPS "Gunakan lokasi saya" + pin di peta yang bisa digeser) atau alamat manual
+- [x] Alamat terisi otomatis dari titik peta (OpenStreetMap Nominatim), tetap bisa diedit + patokan
+- [x] Simpan `pickupLat`/`pickupLng` di pesanan, validasi area layanan Palu (maks. 150 km)
+- [x] Tampilkan titik di detail pesanan pelanggan, admin (link Google Maps), driver (navigasi ke koordinat)
