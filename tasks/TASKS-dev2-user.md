@@ -52,3 +52,9 @@ Centang `[x]` saat selesai dan ikutkan perubahan file ini di commit kamu.
 - [x] Alamat terisi otomatis dari titik peta (OpenStreetMap Nominatim), tetap bisa diedit + patokan
 - [x] Simpan `pickupLat`/`pickupLng` di pesanan, validasi area layanan Palu (maks. 150 km)
 - [x] Tampilkan titik di detail pesanan pelanggan, admin (link Google Maps), driver (navigasi ke koordinat)
+
+## Harga & biaya dari admin (sisi pelanggan)
+- [x] Checkout menampilkan rincian: sewa, biaya layanan, biaya antar unit (lepas kunci), total (dari `GET /api/cars/fees`)
+- [x] Total pesanan di server = sewa + biaya layanan + biaya antar; item Midtrans ikut rinci
+- [x] Detail pesanan menampilkan rincian biaya jika ada
+- [x] Hasil cari menampilkan deskripsi tipe yang diisi admin
