@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Search, ReceiptText } from 'lucide-react';
 import { api } from '../../lib/api';
 import { formatDateTime, formatIDR } from '../../lib/format';
-import { Button, EmptyState, ErrorNote, Field, Modal, Spinner, StatusBadge, toast } from '../../components/ui';
+import { Badge, Button, EmptyState, ErrorNote, Field, Modal, Spinner, StatusBadge, toast } from '../../components/ui';
 import { PageTitle } from './AdminApp';
 import { hasPickupPin, mapsLink } from '../../lib/maps';
 
@@ -116,7 +116,10 @@ function OrderModal({ id, onClose }) {
             <span className="text-lg font-extrabold">{formatIDR(b.totalPrice)}</span>
           </div>
           <dl className="grid gap-3 sm:grid-cols-2">
-            <Info label={t('admin.col.customer')}>{b.customer.name}<br /><span className="text-slate-500">{b.customer.phone} · {b.customer.email}</span></Info>
+            <Info label={t('admin.col.customer')}>
+              {b.customer.name} {b.customer.status === 'DELETED' && <Badge>{t('admin.deletedAccounts')}</Badge>}
+              <br /><span className="text-slate-500">{b.customer.phone} · {b.customer.deletedEmail || b.customer.email}</span>
+            </Info>
             <Info label={t('admin.col.car')}>{b.carType.brand} {b.carType.name}<br /><span className="text-slate-500">{t(`service.${b.service}`)} · {t(`package.${b.package}`)} × {b.quantity}</span></Info>
             <Info label={t('detail.schedule')}>{formatDateTime(b.startAt)}<br />→ {formatDateTime(b.endAt)}</Info>
             <Info label={t('checkout.address')}>
