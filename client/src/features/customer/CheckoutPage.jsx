@@ -1,0 +1,122 @@
+import { useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { ShieldAlert, CalendarClock, MapPin, UserRound, ArrowLeft } from 'lucide-react';
+import { api } from '../../lib/api';
+import { useAuth } from '../../lib/auth';
+import { formatDateTime, formatIDR, wibToISO } from '../../lib/format';
+import { PACKAGE_PRICE_FIELD } from '../../lib/constants';
+import { Button, CarImage, ErrorNote, Field, Spinner } from '../../components/ui';
+import { searchFromParams } from './SearchForm';
+
+export function CheckoutPage() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const s = searchFromParams(params);
+  const carTypeId = Number(params.get('carTypeId'));
+  const user = useAuth((st) => st.user);
+  const [form, setForm] = useState({ pickupAddress: '', notes: '' });
+
+  const typeQ = useQuery({ queryKey: ['type', carTypeId], queryFn: () => api(`/cars/types/${carTypeId}`), enabled: Boolean(carTypeId) });
+  const docsQ = useQuery({ queryKey: ['my-docs'], queryFn: () => api('/documents/mine'), enabled: s.service === 'SELF_DRIVE' });
+  const create = useMutation({
+    mutationFn: () => api('/bookings', { method: 'POST', body: { service: s.service, package: s.package, city: s.city, startAt: wibToISO(s.date, s.time), quantity: s.qty, carTypeId, ...form } }),
+    onSuccess: ({ booking }) => navigate(`/pesanan/${booking.id}`, { replace: true }),
+  });
+
+  if (typeQ.isLoading) return <Spinner />;
+  const type = typeQ.data?.type;
+  if (!type) return <ErrorNote className="m-4" error={typeQ.error || { message: t('common.notFound') }} />;
+
+  const unitPrice = type[PACKAGE_PRICE_FIELD[s.package]];
+  const total = unitPrice * s.qty;
+  const qtyUnit = s.package === 'MONTHLY' ? 'month' : s.package === 'YEARLY' ? 'year' : 'day';
+  const approved = (docsQ.data?.documents || []).filter((d) => d.status === 'APPROVED').length;
+  const needDocs = s.service === 'SELF_DRIVE' && docsQ.data && approved < 2;
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-4 sm:py-6">
+      <button onClick={() => navigate(-1)} className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> {t('common.back')}
+      </button>
+      <h1 className="mb-4 text-2xl font-extrabold text-slate-900 dark:text-white">{t('checkout.title')}</h1>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px] lg:items-start">
+        <form
+          id="checkout"
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            create.mutate();
+          }}
+        >
+          {needDocs && (
+            <div className="flex gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+              <ShieldAlert className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-bold">{t('checkout.docsRequired')}</p>
+                <p className="mt-0.5">{t('checkout.docsRequiredText')}</p>
+                <Link to="/akun#dokumen" className="mt-2 inline-block font-bold underline">{t('checkout.uploadDocs')}</Link>
+              </div>
+            </div>
+          )}
+
+          <section className="card p-4">
+            <h2 className="mb-3 flex items-center gap-2 font-bold text-slate-900 dark:text-white"><UserRound className="h-4 w-4 text-brand-600" />{t('checkout.contact')}</h2>
+            <div className="grid gap-1 text-sm">
+              <p className="font-semibold text-slate-900 dark:text-white">{user.name}</p>
+              <p className="text-slate-500">{user.email} · {user.phone || '-'}</p>
+            </div>
+          </section>
+
+          <section className="card space-y-3 p-4">
+            <h2 className="flex items-center gap-2 font-bold text-slate-900 dark:text-white"><MapPin className="h-4 w-4 text-brand-600" />{s.service === 'WITH_DRIVER' ? t('checkout.pickup') : t('checkout.delivery')}</h2>
+            <Field label={t('checkout.address')} error={create.error?.details?.pickupAddress}>
+              <textarea
+                className="input"
+                rows={2}
+                required
+                minLength={5}
+                placeholder={t('checkout.addressPlaceholder', { city: s.city })}
+                value={form.pickupAddress}
+                onChange={(e) => setForm({ ...form, pickupAddress: e.target.value })}
+              />
+            </Field>
+            <Field label={t('checkout.notes')} hint={t('checkout.notesHint')}>
+              <textarea className="input" rows={2} maxLength={500} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </Field>
+          </section>
+          <ErrorNote error={create.error} />
+        </form>
+
+        <aside className="card overflow-hidden lg:sticky lg:top-20">
+          <CarImage type={type} className="aspect-[16/8]" />
+          <div className="space-y-3 p-4">
+            <div>
+              <p className="text-xs font-semibold text-slate-500">{type.brand} · {t(`service.${s.service}`)}</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">{type.name}</h3>
+            </div>
+            <div className="flex gap-2 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/60">
+              <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" />
+              <div>
+                <p className="font-semibold text-slate-900 dark:text-white">{formatDateTime(wibToISO(s.date, s.time))}</p>
+                <p className="text-slate-500">{s.city} · {t(`package.${s.package}`)} · {t(`unit.${qtyUnit}`, { count: s.qty })}</p>
+              </div>
+            </div>
+            <dl className="space-y-1.5 border-t border-dashed border-slate-200 pt-3 text-sm dark:border-slate-700">
+              <div className="flex justify-between"><dt className="text-slate-500">{t(`package.${s.package}`)} × {s.qty}</dt><dd>{formatIDR(total)}</dd></div>
+              <div className="flex justify-between"><dt className="text-slate-500">{t('checkout.serviceFee')}</dt><dd className="font-semibold text-brand-700 dark:text-brand-400">{t('checkout.free')}</dd></div>
+              <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-extrabold text-slate-900 dark:border-slate-700 dark:text-white"><dt>{t('checkout.total')}</dt><dd>{formatIDR(total)}</dd></div>
+            </dl>
+            {s.service === 'WITH_DRIVER' && <p className="text-xs text-slate-500">{t('checkout.driverIncludes')}</p>}
+            <Button type="submit" form="checkout" size="lg" className="w-full" loading={create.isPending} disabled={needDocs}>
+              {t('checkout.submit')}
+            </Button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
