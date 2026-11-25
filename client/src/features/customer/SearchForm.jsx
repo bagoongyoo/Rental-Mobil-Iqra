@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { MapPin, CalendarDays, Clock, Search, UserRound, KeyRound } from 'lucide-react';
 import { api } from '../../lib/api';
-import { dateStrWIB } from '../../lib/format';
+import { dateStrWIB, TZ_LABEL } from '../../lib/format';
 import { MAX_QTY, SERVICE_PACKAGES } from '../../lib/constants';
 import { Button } from '../../components/ui';
+import { DEFAULT_CITY } from './palu';
 
 export const defaultSearch = () => ({ service: 'WITH_DRIVER', package: 'HOURS_12', city: '', date: dateStrWIB(1), time: '08:00', qty: 1 });
 
@@ -30,7 +31,7 @@ export function SearchForm({ initial, onSubmit, compact }) {
   const cities = data?.cities || [];
 
   useEffect(() => {
-    if (!v.city && cities.length) setV((s) => ({ ...s, city: cities.includes('Yogyakarta') ? 'Yogyakarta' : cities[0] }));
+    if (!v.city && cities.length) setV((s) => ({ ...s, city: cities.includes(DEFAULT_CITY) ? DEFAULT_CITY : cities[0] }));
   }, [cities, v.city]);
 
   const set = (k) => (e) => setV((s) => ({ ...s, [k]: e.target.value }));
@@ -85,7 +86,7 @@ export function SearchForm({ initial, onSubmit, compact }) {
           </div>
         </label>
         <label>
-          <span className="field-label">{t('search.time')}</span>
+          <span className="field-label">{t('search.time')} ({TZ_LABEL})</span>
           <div className="relative">
             <Clock className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-brand-600" />
             <input type="time" className="input pl-9" value={v.time} step="900" onChange={set('time')} required />

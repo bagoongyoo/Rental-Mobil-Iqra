@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { BadgeCheck, ShieldCheck, Wrench, Wallet, Users, Briefcase, Cog, ChevronDown, ArrowRight } from 'lucide-react';
 import { api } from '../../lib/api';
-import { formatIDR } from '../../lib/format';
+import { dateStrWIB, formatIDR } from '../../lib/format';
 import { CarImage, CarSvg } from '../../components/ui';
 import { SearchForm } from './SearchForm';
+import { DEFAULT_CITY } from './palu';
 
 export const toSearchParams = (v) => new URLSearchParams({ service: v.service, package: v.package, city: v.city, date: v.date, time: v.time, qty: String(v.qty) });
 
@@ -76,7 +77,7 @@ export function HomePage() {
             return (
               <Link
                 key={type.id}
-                to={`/cari?${toSearchParams({ service: type.priceDaily ? 'SELF_DRIVE' : 'WITH_DRIVER', package: type.priceDaily ? 'DAILY' : 'HOURS_12', city: 'Yogyakarta', date: new Date(Date.now() + 7 * 3600000 + 86400000).toISOString().slice(0, 10), time: '08:00', qty: 1 })}`}
+                to={`/cari?${toSearchParams({ service: type.priceDaily ? 'SELF_DRIVE' : 'WITH_DRIVER', package: type.priceDaily ? 'DAILY' : 'HOURS_12', city: DEFAULT_CITY, date: dateStrWIB(1), time: '08:00', qty: 1 })}`}
                 className="card group w-60 shrink-0 snap-start overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg sm:w-auto"
               >
                 <CarImage type={type} className="aspect-[16/9]" />
