@@ -42,10 +42,10 @@ app.get('/api/health', (req, res) => {
 // app.use('/api/documents', require('./modules/documents/documents.routes'));
 
 // Dev 3: availability, orders, drivers, tracking
-// app.use('/api/availability', require('./modules/availability/availability.routes'));
-// app.use('/api/orders', require('./modules/orders/orders.routes'));
-// app.use('/api/drivers', require('./modules/drivers/drivers.routes'));
-// app.use('/api/tracking', require('./modules/tracking/tracking.routes'));
+app.use('/api/availability', require('./modules/availability/availability.routes'));
+app.use('/api/orders', require('./modules/orders/orders.routes'));
+app.use('/api/drivers', require('./modules/drivers/drivers.routes'));
+app.use('/api/tracking', require('./modules/tracking/tracking.routes'));
 
 // ==========================================
 // 404 & GLOBAL ERROR HANDLER

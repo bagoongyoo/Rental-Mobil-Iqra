@@ -1,5 +1,6 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+const prisma = require('../config/db');
 
 let ioInstance = null;
 
@@ -57,26 +58,73 @@ function initSocket(httpServer) {
     });
 
     // Driver mengirim lokasi GPS live (misal tiap 10 detik)
-    socket.on('driver:location', (payload) => {
-      if (role !== 'DRIVER') return;
+    socket.on('driver:location', async (payload, ack) => {
+      try {
+        if (role !== 'DRIVER') {
+          if (typeof ack === 'function') ack({ success: false, message: 'Hanya driver yang dapat mengirim lokasi' });
+          return;
+        }
 
-      const { orderId, lat, lng } = payload || {};
-      if (typeof lat !== 'number' || typeof lng !== 'number') return;
+        const { orderId, lat, lng } = payload || {};
+        const parsedLat = Number(lat);
+        const parsedLng = Number(lng);
 
-      const locationUpdate = {
-        driverId: userId,
-        orderId: orderId || null,
-        lat,
-        lng,
-        timestamp: new Date().toISOString(),
-      };
+        if (Number.isNaN(parsedLat) || Number.isNaN(parsedLng)) {
+          if (typeof ack === 'function') ack({ success: false, message: 'Koordinat lat/lng tidak valid' });
+          return;
+        }
 
-      // Kirim live update ke semua Admin (peta pemantauan semua driver aktif)
-      ioInstance.to('role:ADMIN').emit('driver:location:update', locationUpdate);
+        const now = new Date();
+        const parsedOrderId = orderId ? Number(orderId) : null;
 
-      // Jika terkait order aktif, kirim juga ke pelanggan di room order tersebut
-      if (orderId) {
-        ioInstance.to(`order:${orderId}`).emit('driver:location:update', locationUpdate);
+        // Simpan lokasi terakhir ke DriverProfile & riwayat ringkas ke DriverLocationLog
+        await Promise.all([
+          prisma.driverProfile.upsert({
+            where: { userId: Number(userId) },
+            update: {
+              lastLat: parsedLat,
+              lastLng: parsedLng,
+              lastLocationAt: now,
+            },
+            create: {
+              userId: Number(userId),
+              licenseNumber: `SIM-${userId}`,
+              lastLat: parsedLat,
+              lastLng: parsedLng,
+              lastLocationAt: now,
+            },
+          }),
+          prisma.driverLocationLog.create({
+            data: {
+              driverId: Number(userId),
+              orderId: parsedOrderId && !Number.isNaN(parsedOrderId) ? parsedOrderId : null,
+              lat: parsedLat,
+              lng: parsedLng,
+              recordedAt: now,
+            },
+          }),
+        ]);
+
+        const locationUpdate = {
+          driverId: Number(userId),
+          orderId: parsedOrderId,
+          lat: parsedLat,
+          lng: parsedLng,
+          timestamp: now.toISOString(),
+        };
+
+        // Kirim live update ke semua Admin (komponen peta semua driver aktif)
+        ioInstance.to('role:ADMIN').emit('driver:location:update', locationUpdate);
+
+        // Jika terkait order aktif, kirim juga ke pelanggan di room order tersebut
+        if (parsedOrderId) {
+          ioInstance.to(`order:${parsedOrderId}`).emit('driver:location:update', locationUpdate);
+        }
+
+        if (typeof ack === 'function') ack({ success: true, data: locationUpdate });
+      } catch (error) {
+        console.error('[Socket driver:location Error]:', error.message);
+        if (typeof ack === 'function') ack({ success: false, message: error.message });
       }
     });
 
@@ -90,16 +138,39 @@ function initSocket(httpServer) {
 
 /**
  * Mengambil instance Socket.IO dari service/controller lain
- * (misalnya untuk emit perubahan status order ke pelanggan)
  */
 function getIO() {
-  if (!ioInstance) {
-    throw new Error('Socket.IO belum diinisialisasi. Panggil initSocket(httpServer) terlebih dahulu.');
-  }
   return ioInstance;
+}
+
+/**
+ * Helper untuk broadcast perubahan status order secara realtime ke Pelanggan, Driver, dan Admin
+ */
+function emitOrderStatusUpdate(order) {
+  if (!ioInstance || !order) return;
+
+  const payload = {
+    orderId: order.id,
+    orderCode: order.orderCode,
+    status: order.status,
+    carUnitId: order.carUnitId || null,
+    driverId: order.driverId || null,
+    updatedAt: order.updatedAt || new Date().toISOString(),
+    order,
+  };
+
+  ioInstance.to(`order:${order.id}`).emit('order:status:update', payload);
+  if (order.customerId) {
+    ioInstance.to(`user:${order.customerId}`).emit('order:status:update', payload);
+  }
+  if (order.driverId) {
+    ioInstance.to(`user:${order.driverId}`).emit('order:status:update', payload);
+  }
+  ioInstance.to('role:ADMIN').emit('order:status:update', payload);
 }
 
 module.exports = {
   initSocket,
   getIO,
+  emitOrderStatusUpdate,
 };
