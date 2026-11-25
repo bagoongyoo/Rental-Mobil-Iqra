@@ -15,6 +15,8 @@ Centang `[x]` saat selesai dan ikutkan perubahan file ini di commit kamu.
 - [ ] Layout admin (sidebar/bottom-nav untuk HP), dashboard ringkas: order hari ini, unit tersedia, pemasukan bulan ini
 - [ ] CRUD tipe mobil (nama, kapasitas, transmisi, foto, harga per paket: 4 jam / 12 jam dengan driver, harian / bulanan / tahunan lepas kunci)
 - [ ] CRUD unit mobil (plat nomor, tipe, tahun, warna, status: tersedia / disewa / perawatan)
+- [x] Biaya tambahan diatur admin: biaya layanan (semua pesanan) + biaya antar unit (lepas kunci), `GET/PUT /api/cars/admin/fees`
+- [x] Ganti / hapus foto tipe, lanjut unggah foto setelah tipe baru disimpan, label "Foto contoh"
 - [ ] Manajemen pengguna: daftar pelanggan dan driver, blokir/aktifkan akun
 
 ## Keuangan
