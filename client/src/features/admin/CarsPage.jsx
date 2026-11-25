@@ -1,23 +1,29 @@
-// Master data mobil (Dev 1): tipe + harga paket, unit (plat nomor), foto.
+// Master data mobil (Dev 1): tipe + harga paket, unit (plat nomor), foto, biaya tambahan.
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, ImageUp, Trash2 } from 'lucide-react';
+import { Plus, Pencil, ImageUp, ImageOff, Trash2, ReceiptText } from 'lucide-react';
 import { api } from '../../lib/api';
 import { formatIDR } from '../../lib/format';
 import { compressImage } from '../../lib/compressImage';
-import { Badge, Button, CarImage, ErrorNote, Field, Modal, Segmented, Spinner, toast } from '../../components/ui';
+import { Badge, Button, CarImage, ErrorNote, Field, Modal, Segmented, Spinner, stockPhotoFor, toast } from '../../components/ui';
 import { PageTitle } from './AdminApp';
 
 const CATEGORIES = ['MPV', 'SUV', 'SEDAN', 'HATCHBACK', 'VAN', 'PREMIUM'];
 const PRICE_FIELDS = ['priceDriver4h', 'priceDriver12h', 'priceDaily', 'priceMonthly', 'priceYearly'];
 const STATE_TONE = { AVAILABLE: 'brand', RENTED: 'violet', MAINTENANCE: 'amber', INACTIVE: 'slate' };
 
+/** Setelah data mobil/harga berubah, muat ulang semua daftar yang menampilkan harga (admin + pelanggan). */
+function refreshCarQueries(qc) {
+  ['admin-types', 'admin-units', 'types', 'type', 'search', 'cities', 'fees', 'admin-fees'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+}
+
 export default function CarsPage() {
   const { t } = useTranslation();
   const [tab, setTab] = useState('types');
   const [editType, setEditType] = useState(null);
   const [editUnit, setEditUnit] = useState(null);
+  const [feesOpen, setFeesOpen] = useState(false);
   const typesQ = useQuery({ queryKey: ['admin-types'], queryFn: () => api('/cars/admin/types') });
   const unitsQ = useQuery({ queryKey: ['admin-units'], queryFn: () => api('/cars/admin/units'), enabled: tab === 'units' });
 
@@ -35,16 +41,21 @@ export default function CarsPage() {
 
       {tab === 'types' && (
         <>
+          <FeesCard onEdit={() => setFeesOpen(true)} />
           {typesQ.isLoading && <Spinner />}
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {typesQ.data?.types.map((ty) => (
               <div key={ty.id} className={`card overflow-hidden ${ty.isActive ? '' : 'opacity-60'}`}>
-                <CarImage type={ty} className="aspect-[16/7]" />
+                <div className="relative">
+                  <CarImage type={ty} className="aspect-[16/7]" />
+                  <PhotoSourceBadge type={ty} className="absolute top-2 left-2" />
+                </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-xs font-semibold text-slate-500">{ty.brand} · {t(`category.${ty.category}`)} · {t('car.seats', { count: ty.seats })}</p>
                       <h3 className="font-bold text-slate-900 dark:text-white">{ty.name}</h3>
+                      <p className="text-xs text-slate-500">{t(`transmission.${ty.transmission}`)} · {ty.fuel}</p>
                     </div>
                     {!ty.isActive && <Badge>{t('admin.inactive')}</Badge>}
                   </div>
@@ -83,13 +94,22 @@ export default function CarsPage() {
         </>
       )}
 
-      {editType && <TypeForm type={editType} onClose={() => setEditType(null)} />}
+      {editType && (
+        <TypeForm
+          key={editType.id || 'new'}
+          // Pakai data terbaru dari daftar supaya foto langsung berganti setelah diunggah/dihapus.
+          type={typesQ.data?.types.find((x) => x.id === editType.id) || editType}
+          onCreated={setEditType}
+          onClose={() => setEditType(null)}
+        />
+      )}
+      {feesOpen && <FeesForm onClose={() => setFeesOpen(false)} />}
       {editUnit && <UnitForm unit={editUnit} types={typesQ.data?.types || []} onClose={() => setEditUnit(null)} />}
     </>
   );
 }
 
-function TypeForm({ type, onClose }) {
+function TypeForm({ type, onCreated, onClose }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const isNew = !type.id;
@@ -100,10 +120,7 @@ function TypeForm({ type, onClose }) {
     ...Object.fromEntries(Object.entries(type).map(([k, v]) => [k, v ?? ''])),
   });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: ['admin-types'] });
-    qc.invalidateQueries({ queryKey: ['types'] });
-  };
+  const refresh = () => refreshCarQueries(qc);
 
   const save = useMutation({
     mutationFn: () => {
@@ -114,10 +131,12 @@ function TypeForm({ type, onClose }) {
       };
       return isNew ? api('/cars/admin/types', { method: 'POST', body }) : api(`/cars/admin/types/${type.id}`, { method: 'PATCH', body });
     },
-    onSuccess: () => {
+    onSuccess: (r) => {
       refresh();
       toast(t('common.saved'));
-      onClose();
+      // Tipe baru: modal tetap terbuka dalam mode edit supaya admin bisa langsung unggah foto.
+      if (isNew && r?.type) onCreated?.(r.type);
+      else onClose();
     },
   });
   const upload = useMutation({
@@ -129,6 +148,13 @@ function TypeForm({ type, onClose }) {
     onSuccess: () => {
       refresh();
       toast(t('admin.photoUploaded'));
+    },
+  });
+  const removePhoto = useMutation({
+    mutationFn: () => api(`/cars/admin/types/${type.id}/image`, { method: 'DELETE' }),
+    onSuccess: () => {
+      refresh();
+      toast(t('admin.photoRemoved'));
     },
   });
   const remove = useMutation({
@@ -184,12 +210,30 @@ function TypeForm({ type, onClose }) {
         <label className="col-span-2 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={f.isActive} onChange={set('isActive')} className="h-4 w-4 accent-brand-700" /> {t('admin.showToCustomers')}</label>
         <ErrorNote error={save.error} className="col-span-2" />
       </form>
-      {!isNew && (
-        <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
-          <CarImage type={type} className="h-14 w-24 rounded-lg" />
-          <Button size="sm" variant="secondary" loading={upload.isPending} onClick={() => fileRef.current?.click()}><ImageUp className="h-4 w-4" /> {t('admin.uploadPhoto')}</Button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload.mutate(e.target.files[0])} />
-          <ErrorNote error={upload.error} />
+      {isNew ? (
+        <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800/60">{t('admin.photoAfterSave')}</p>
+      ) : (
+        <div className="mt-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+          <p className="mb-2 text-xs font-bold text-slate-500 uppercase">{t('admin.photo')}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <CarImage type={type} className="h-20 w-36 rounded-lg" />
+              <PhotoSourceBadge type={type} className="absolute bottom-1 left-1" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" loading={upload.isPending} onClick={() => fileRef.current?.click()}>
+                <ImageUp className="h-4 w-4" /> {type.imagePath ? t('admin.replacePhoto') : t('admin.uploadPhoto')}
+              </Button>
+              {type.imagePath && (
+                <Button size="sm" variant="ghost" className="text-red-600" loading={removePhoto.isPending} onClick={() => window.confirm(t('admin.confirmRemovePhoto')) && removePhoto.mutate()}>
+                  <ImageOff className="h-4 w-4" /> {t('admin.removePhoto')}
+                </Button>
+              )}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.[0]) upload.mutate(e.target.files[0]); e.target.value = ''; }} />
+          </div>
+          <p className="mt-2 text-xs text-slate-500">{type.imagePath ? t('admin.photoOwnHint') : stockPhotoFor(type) ? t('admin.photoStockHint') : t('admin.photoNoneHint')}</p>
+          <ErrorNote error={upload.error || removePhoto.error} />
         </div>
       )}
     </Modal>
@@ -202,11 +246,7 @@ function UnitForm({ unit, types, onClose }) {
   const isNew = !unit.id;
   const [f, setF] = useState({ carTypeId: unit.carTypeId || types[0]?.id || '', plate: unit.plate || '', year: unit.year || new Date().getFullYear(), color: unit.color || '', city: unit.city || 'Palu', odometer: unit.odometer ?? 0, status: unit.status || 'ACTIVE' });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: ['admin-units'] });
-    qc.invalidateQueries({ queryKey: ['admin-types'] });
-    qc.invalidateQueries({ queryKey: ['cities'] });
-  };
+  const refresh = () => refreshCarQueries(qc);
   const save = useMutation({
     mutationFn: () => {
       const body = { ...f, carTypeId: Number(f.carTypeId), year: Number(f.year), odometer: Number(f.odometer) };
@@ -251,7 +291,7 @@ function UnitForm({ unit, types, onClose }) {
         <Field label={t('admin.type')} className="col-span-2">
           <select className="input" value={f.carTypeId} onChange={set('carTypeId')} required>{types.map((ty) => <option key={ty.id} value={ty.id}>{ty.brand} {ty.name}</option>)}</select>
         </Field>
-        <Field label={t('admin.plate')}><input className="input uppercase" required value={f.plate} onChange={set('plate')} placeholder="AB 1234 XY" /></Field>
+        <Field label={t('admin.plate')}><input className="input uppercase" required value={f.plate} onChange={set('plate')} placeholder="DN 1234 XY" /></Field>
         <Field label={t('admin.city')}><input className="input" required value={f.city} onChange={set('city')} /></Field>
         <Field label={t('admin.year')}><input className="input" type="number" required value={f.year} onChange={set('year')} /></Field>
         <Field label={t('admin.color')}><input className="input" required value={f.color} onChange={set('color')} /></Field>
@@ -261,6 +301,88 @@ function UnitForm({ unit, types, onClose }) {
         </Field>
         <ErrorNote error={save.error} className="col-span-2" />
       </form>
+    </Modal>
+  );
+}
+
+/** Label kecil: foto dari admin, foto contoh (stok), atau ilustrasi. */
+function PhotoSourceBadge({ type, className = '' }) {
+  const { t } = useTranslation();
+  if (type.imagePath) return null;
+  const stock = stockPhotoFor(type);
+  return (
+    <span className={`rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white ${className}`}>
+      {stock ? t('admin.stockPhoto') : t('admin.illustration')}
+    </span>
+  );
+}
+
+/** Biaya tambahan di luar harga paket (berlaku untuk pesanan baru). */
+function FeesCard({ onEdit }) {
+  const { t } = useTranslation();
+  const { data } = useQuery({ queryKey: ['admin-fees'], queryFn: () => api('/cars/admin/fees') });
+  const fees = data?.fees;
+  const show = (v) => (v > 0 ? formatIDR(v) : t('checkout.free'));
+  return (
+    <div className="card mb-4 flex flex-wrap items-center gap-3 p-4">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300"><ReceiptText className="h-5 w-5" /></span>
+      <div className="min-w-0 flex-1">
+        <p className="font-bold text-slate-900 dark:text-white">{t('admin.fees')}</p>
+        <p className="text-xs text-slate-500">
+          {fees ? `${t('checkout.serviceFee')}: ${show(fees.serviceFee)} · ${t('checkout.deliveryFee')}: ${show(fees.deliveryFee)}` : '…'}
+        </p>
+      </div>
+      <Button size="sm" variant="secondary" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /> {t('common.edit')}</Button>
+    </div>
+  );
+}
+
+function FeesForm({ onClose }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ['admin-fees'], queryFn: () => api('/cars/admin/fees') });
+  const [f, setF] = useState(null);
+  const values = f || { serviceFee: data?.fees.serviceFee ?? 0, deliveryFee: data?.fees.deliveryFee ?? 0 };
+  const set = (k) => (e) => setF({ ...values, [k]: e.target.value });
+  const save = useMutation({
+    mutationFn: () => api('/cars/admin/fees', { method: 'PUT', body: { serviceFee: Number(values.serviceFee || 0), deliveryFee: Number(values.deliveryFee || 0) } }),
+    onSuccess: () => {
+      refreshCarQueries(qc);
+      toast(t('common.saved'));
+      onClose();
+    },
+  });
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={t('admin.fees')}
+      footer={
+        <>
+          <Button variant="secondary" className="ml-auto" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button type="submit" form="fees-form" loading={save.isPending} disabled={isLoading}>{t('common.save')}</Button>
+        </>
+      }
+    >
+      {isLoading ? <Spinner /> : (
+        <form
+          id="fees-form"
+          className="space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate();
+          }}
+        >
+          <Field label={t('checkout.serviceFee')} hint={t('admin.serviceFeeHint')}>
+            <input className="input" type="number" min={0} step={1000} required value={values.serviceFee} onChange={set('serviceFee')} />
+          </Field>
+          <Field label={t('checkout.deliveryFee')} hint={t('admin.deliveryFeeHint')}>
+            <input className="input" type="number" min={0} step={1000} required value={values.deliveryFee} onChange={set('deliveryFee')} />
+          </Field>
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">{t('admin.feesNote')}</p>
+          <ErrorNote error={save.error} />
+        </form>
+      )}
     </Modal>
   );
 }
