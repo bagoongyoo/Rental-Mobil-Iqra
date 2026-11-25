@@ -22,6 +22,7 @@ enum UserStatus {
   PENDING // driver baru daftar, menunggu persetujuan admin
   ACTIVE
   BLOCKED
+  DELETED // dihapus pelanggan sendiri: tidak bisa masuk, data tetap disimpan untuk admin
 }
 
 model User {
@@ -36,6 +37,12 @@ model User {
   language     String     @default("id") @db.VarChar(5)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  /// Token yang dibuat sebelum waktu ini ditolak (keluar dari semua perangkat setelah ganti kata sandi / hapus akun).
+  passwordChangedAt DateTime?
+  /// Hapus akun = soft delete: email diganti placeholder supaya bisa daftar ulang, email asli disimpan di sini.
+  deletedAt    DateTime?
+  deletedEmail String?    @db.VarChar(150)
+  deleteReason String?    @db.VarChar(255)
 
   documents       Document[]     @relation("UserDocuments")
   reviewedDocs    Document[]     @relation("DocumentReviewer")
@@ -44,6 +51,36 @@ model User {
   driverProfile   DriverProfile?
   locationLogs    LocationLog[]
   createdTxns     Transaction[]
+  otpCodes        OtpCode[]
+
+  @@index([deletedEmail])
+}
+
+enum OtpChannel {
+  EMAIL
+  WHATSAPP
+}
+
+enum OtpPurpose {
+  CHANGE_PASSWORD
+  RESET_PASSWORD
+}
+
+/// Kode verifikasi 6 angka (disimpan dalam bentuk hash), berlaku 10 menit, maks. 5x salah.
+model OtpCode {
+  id          Int        @id @default(autoincrement())
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose     OtpPurpose
+  channel     OtpChannel
+  destination String     @db.VarChar(150)
+  codeHash    String     @db.VarChar(64)
+  attempts    Int        @default(0)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([userId, purpose, createdAt])
 }
 
 // ---------- Dokumen KTP/SIM (Dev 2) ----------
