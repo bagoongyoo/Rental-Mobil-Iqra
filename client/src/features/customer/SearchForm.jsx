@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin, CalendarDays, Clock, Search, UserRound, KeyRound } from 'lucide-react';
+import { MapPin, Clock, Search, UserRound, KeyRound } from 'lucide-react';
 import { dateStrWIB, TZ_LABEL } from '../../lib/format';
 import { MAX_QTY, SERVICE_PACKAGES } from '../../lib/constants';
-import { Button } from '../../components/ui';
+import { Button, DatePicker } from '../../components/ui';
 import { DEFAULT_CITY } from './palu';
 
 export const defaultSearch = () => ({ service: 'WITH_DRIVER', package: 'HOURS_12', city: '', date: dateStrWIB(1), time: '08:00', qty: 1 });
@@ -77,13 +77,10 @@ export function SearchForm({ initial, onSubmit, compact }) {
             </select>
           </div>
         </label>
-        <label>
-          <span className="field-label">{t('search.date')}</span>
-          <div className="relative">
-            <CalendarDays className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-brand-600" />
-            <input type="date" className="input pl-9" value={v.date} min={dateStrWIB(0)} onChange={set('date')} required />
-          </div>
-        </label>
+        <div>
+          <label htmlFor="search-date" className="field-label">{t('search.date')}</label>
+          <DatePicker id="search-date" value={v.date} min={dateStrWIB(0)} today={dateStrWIB(0)} onChange={(date) => setV((s) => ({ ...s, date }))} />
+        </div>
         <label>
           <span className="field-label">{t('search.time')} ({TZ_LABEL})</span>
           <div className="relative">
