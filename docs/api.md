@@ -26,22 +26,27 @@ Error selalu berbentuk `{ "message": "...", "details": { "field": "pesan" } }`.
 | GET | `/documents/:id/file` | pemilik/admin | gambar dokumen |
 | GET | `/documents?status=PENDING` | admin | antrian verifikasi |
 | PATCH | `/documents/:id/review` | admin | `{ status: APPROVED/REJECTED, rejectReason }` |
-| GET | `/dashboard` | admin | ringkasan dashboard |
-| GET | `/users?role&q`, PATCH `/users/:id/status` | admin | daftar pengguna, blokir/aktifkan |
-| GET/POST/PATCH/DELETE | `/cars/admin/types[/:id]` | admin | CRUD tipe (hapus = nonaktif jika ada riwayat) |
-| POST | `/cars/admin/types/:id/image` | admin | foto tipe (WebP), menggantikan foto lama |
-| DELETE | `/cars/admin/types/:id/image` | admin | hapus foto tipe (kembali ke foto contoh/ilustrasi) |
-| GET/PUT | `/cars/admin/fees` | admin | lihat/ubah biaya layanan & biaya antar unit (berlaku untuk pesanan baru) |
-| GET/POST/PATCH/DELETE | `/cars/admin/units[/:id]` | admin | CRUD unit |
+| GET | `/dashboard` | admin | ringkasan: `todo` (perlu ditugaskan, dokumen, driver), `stats`, `month` (pemasukan/pengeluaran/laba), `latestOrders`, `serviceReminders` |
+| GET | `/users?role=CUSTOMER\|DRIVER&q` | admin | daftar pengguna + status dokumen + jumlah pesanan |
+| PATCH | `/users/:id/status` | admin | `{ isActive }` blokir/aktifkan (admin tidak bisa diblokir) |
+| POST/PUT/DELETE | `/cars/types[/:id]` | admin | CRUD tipe + harga per paket (hapus ditolak jika masih punya unit/riwayat pesanan) |
+| POST/DELETE | `/cars/types/:id/photo` | admin | multipart `photo` → WebP, menggantikan foto lama / hapus foto |
+| GET/POST/PUT/DELETE | `/cars/units[/:id]` | admin | CRUD unit (plat `DN 1234 AB`), `?carTypeId&status&q` |
+| PATCH | `/cars/units/:id/status` | admin | `{ status: AVAILABLE\|RENTED\|MAINTENANCE }` |
 | GET | `/orders?status&q`, `/orders/:id` | admin | daftar & detail + opsi unit/driver yang bebas |
 | POST | `/orders/:id/assign` | admin | `{ unitId, driverId }` → Dikonfirmasi |
 | POST | `/orders/:id/start` / `complete` / `cancel` / `refund` | admin | ubah status |
-| GET | `/finance/summary?period&date&type` | admin | total, grafik, per kategori, transaksi |
-| GET | `/finance/export?period&date&type` | admin | file CSV |
-| GET | `/finance/categories` | admin | daftar kategori |
-| POST/DELETE | `/finance/transactions[/:id]` | admin | transaksi manual |
-| GET/POST/PATCH | `/maintenance[/:id]` | admin | jadwal perawatan |
-| POST | `/maintenance/:id/complete` / `cancel` | admin | selesai (biaya → pengeluaran) / batal |
+| GET | `/finance/summary?period=day\|week\|month\|year&date=YYYY-MM-DD&type` | admin | total, data grafik (per 3 jam / hari / bulan), per kategori, transaksi. Batas hari memakai WITA |
+| GET | `/finance/export?period&date&type` | admin | file CSV (UTF-8 + BOM, ada baris total) |
+| GET | `/finance/categories` | admin | `{ INCOME: [...], EXPENSE: [...] }` |
+| POST | `/finance/transactions` | admin | `{ type, category, amount, description?, transactionDate? }` transaksi manual |
+| DELETE | `/finance/transactions/:id` | admin | hanya transaksi manual (otomatis dari pesanan/perawatan ditolak) |
+| GET | `/maintenance?status&carUnitId`, `/maintenance/upcoming?days=7`, `/maintenance/:id` | admin | jadwal servis (+ `isOverdue`) |
+| POST | `/maintenance` | admin | `{ carUnitId, serviceType, scheduledDate: YYYY-MM-DD, cost?, notes? }` (ditolak jika unit sudah ditugaskan ke pesanan di tanggal itu) |
+| PATCH | `/maintenance/:id` | admin | ubah jadwal yang masih terbuka |
+| POST | `/maintenance/:id/start` | admin | mulai servis → unit `MAINTENANCE` |
+| POST | `/maintenance/:id/complete` | admin | `{ cost, completedDate?, notes?, nextInMonths? }` → biaya dicatat pengeluaran "Perawatan", unit kembali `AVAILABLE`, opsional buat jadwal berkala berikutnya |
+| POST | `/maintenance/:id/cancel` | admin | batal |
 | GET | `/drivers` | admin | semua driver |
 | POST | `/drivers/:id/approve` / `reject` | admin | persetujuan driver |
 | GET | `/drivers/me` | driver | profil, tugas aktif, riwayat |
@@ -72,6 +77,8 @@ PENDING_PAYMENT -> PAID -> CONFIRMED -> ONGOING -> COMPLETED
    CANCELLED
 ```
 Semua perubahan status lewat `server/src/modules/orders/orders.service.js`.
+
+Keuangan otomatis: pembayaran lunas → pemasukan "Sewa Mobil"; status `REFUNDED` → pengeluaran "Refund" (sekali per pesanan); perawatan selesai → pengeluaran "Perawatan".
 
 ## Akun pelanggan (`/api/account`, Dev 2)
 

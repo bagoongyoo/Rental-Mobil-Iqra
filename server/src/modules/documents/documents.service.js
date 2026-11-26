@@ -6,6 +6,7 @@ const sharp = require('sharp');
 const prisma = require('../../config/db');
 
 const DOC_DIR = path.join(__dirname, '../../../storage/documents');
+const DRIVER_DIR = path.join(__dirname, '../../../storage/drivers');
 const PUBLIC_FIELDS = { id: true, type: true, status: true, rejectionReason: true, verifiedAt: true, updatedAt: true };
 
 function httpError(statusCode, message) {
@@ -52,7 +53,15 @@ async function getFilePath(user, id) {
   const doc = await prisma.userDocument.findUnique({ where: { id: Number(id) } });
   if (!doc) throw httpError(404, 'Dokumen tidak ditemukan.');
   if (user.role !== 'ADMIN' && doc.userId !== user.id) throw httpError(403, 'Anda tidak memiliki akses ke dokumen ini.');
-  return path.join(DOC_DIR, path.basename(doc.filePath));
+  // Foto SIM/profil dari pendaftaran driver (Dev 3) disimpan di storage/drivers/.
+  const dir = String(doc.filePath).startsWith('storage/drivers/') ? DRIVER_DIR : DOC_DIR;
+  const filePath = path.join(dir, path.basename(doc.filePath));
+  try {
+    await fs.access(filePath);
+  } catch {
+    throw httpError(404, 'File dokumen tidak ditemukan.');
+  }
+  return filePath;
 }
 
 // ---------- Admin (halaman verifikasi dibuat Dev 1) ----------
