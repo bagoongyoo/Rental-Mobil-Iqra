@@ -690,5 +690,21 @@
     "choose": "Choose a time",
     "hour": "Hour",
     "minute": "Minute"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "chooseRequired": "Please choose one.",
+    "fileRequired": "Please upload this file.",
+    "checkRequired": "Please tick this box.",
+    "email": "Email format is not valid (e.g. name@email.com).",
+    "format": "The format is not valid.",
+    "tooShort": "At least {{min}} characters (currently {{count}}).",
+    "tooLong": "At most {{max}} characters.",
+    "min": "Minimum value is {{min}}.",
+    "max": "Maximum value is {{max}}.",
+    "summaryOne": "1 required field is not filled in correctly. Check the one marked in red.",
+    "summaryMany": "{{count}} required fields are not filled in correctly. Check the ones marked in red.",
+    "photoRequired": "The {{name}} photo is required.",
+    "photoTooBig": "The {{name}} photo is over 1 MB, compress it first."
   }
 }

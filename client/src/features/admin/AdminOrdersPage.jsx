@@ -219,13 +219,19 @@ function AssignForm({ order, onDone }) {
   const drivers = data.freeDrivers.map((d) => ({ value: d.id, label: `${d.name}${d.isReady ? ` · ${t('admin.ready')}` : ''}` }));
 
   return (
-    <section className="rounded-2xl border border-brand-200 bg-brand-50/60 p-4 dark:border-brand-900 dark:bg-brand-950/30">
+    <form
+      className="rounded-2xl border border-brand-200 bg-brand-50/60 p-4 dark:border-brand-900 dark:bg-brand-950/30"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (unitId && (!needDriver || driverId)) assign.mutate();
+      }}
+    >
       <h3 className="mb-3 font-bold text-slate-900 dark:text-white">{order.status === 'PAID' ? t('admin.assignTitle') : t('admin.reassignTitle')}</h3>
       <ErrorNote error={assign.error} className="mb-3" />
       <div className="grid gap-3 sm:grid-cols-2">
         <Group label={t('admin.unit')}>
           {units.length ? (
-            <Select value={unitId} onChange={setUnitId} options={[{ value: '', label: t('admin.chooseUnit', { count: units.length }) }, ...units]} aria-label={t('admin.unit')} />
+            <Select required value={unitId} onChange={setUnitId} options={[{ value: '', label: t('admin.chooseUnit', { count: units.length }) }, ...units]} aria-label={t('admin.unit')} />
           ) : (
             <p className="text-sm text-red-600">{t('admin.noFreeUnit')}</p>
           )}
@@ -233,16 +239,16 @@ function AssignForm({ order, onDone }) {
         {needDriver && (
           <Group label={t('admin.driver')}>
             {drivers.length ? (
-              <Select value={driverId} onChange={setDriverId} options={[{ value: '', label: t('admin.chooseDriver', { count: drivers.length }) }, ...drivers]} aria-label={t('admin.driver')} />
+              <Select required value={driverId} onChange={setDriverId} options={[{ value: '', label: t('admin.chooseDriver', { count: drivers.length }) }, ...drivers]} aria-label={t('admin.driver')} />
             ) : (
               <p className="text-sm text-red-600">{t('admin.noFreeDriver')}</p>
             )}
           </Group>
         )}
       </div>
-      <Button className="mt-3 w-full" loading={assign.isPending} disabled={!unitId || (needDriver && !driverId)} onClick={() => assign.mutate()}>
+      <Button type="submit" className="mt-3 w-full" loading={assign.isPending} disabled={!units.length || (needDriver && !drivers.length)}>
         {t('admin.assignButton')}
       </Button>
-    </section>
+    </form>
   );
 }

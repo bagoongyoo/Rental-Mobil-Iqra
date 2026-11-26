@@ -676,5 +676,21 @@
     "choose": "Pilih jam",
     "hour": "Jam",
     "minute": "Menit"
+  },
+  "validation": {
+    "required": "Kolom ini wajib diisi.",
+    "chooseRequired": "Silakan pilih salah satu.",
+    "fileRequired": "Wajib unggah file ini.",
+    "checkRequired": "Wajib dicentang.",
+    "email": "Format email belum benar (contoh: nama@email.com).",
+    "format": "Format isian belum sesuai.",
+    "tooShort": "Minimal {{min}} karakter (sekarang {{count}}).",
+    "tooLong": "Maksimal {{max}} karakter.",
+    "min": "Nilai minimal {{min}}.",
+    "max": "Nilai maksimal {{max}}.",
+    "summaryOne": "Ada 1 kolom wajib yang belum benar. Cek yang ditandai merah.",
+    "summaryMany": "Ada {{count}} kolom wajib yang belum benar. Cek yang ditandai merah.",
+    "photoRequired": "Foto {{name}} wajib diunggah.",
+    "photoTooBig": "Foto {{name}} melebihi 1 MB, kompres dulu."
   }
 }

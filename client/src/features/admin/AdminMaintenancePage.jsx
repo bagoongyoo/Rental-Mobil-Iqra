@@ -182,7 +182,7 @@ function ScheduleForm({ item, onClose }) {
       footer={
         <>
           <Button variant="secondary" className="flex-1" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button form="mt-form" type="submit" className="flex-1" loading={save.isPending} disabled={!unitId}>{t('common.save')}</Button>
+          <Button form="mt-form" type="submit" className="flex-1" loading={save.isPending}>{t('common.save')}</Button>
         </>
       }
     >
@@ -202,6 +202,7 @@ function ScheduleForm({ item, onClose }) {
           <ErrorNote error={save.error} />
           <Group label={t('admin.unit')}>
             <Select
+              required
               value={unitId}
               onChange={set('carUnitId')}
               options={(units.data || []).map((u) => ({ value: u.id, label: `${u.plateNumber} · ${u.carType.name}` }))}

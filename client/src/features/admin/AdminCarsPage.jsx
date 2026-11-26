@@ -148,7 +148,7 @@ function TypeForm({ type, onClose, onSaved }) {
             </Button>
           )}
           <Button variant="secondary" className="ml-auto" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button form="type-form" type="submit" loading={save.isPending} disabled={!form.name.trim() || noPrice}>{t('common.save')}</Button>
+          <Button form="type-form" type="submit" loading={save.isPending}>{t('common.save')}</Button>
         </>
       }
     >
@@ -157,7 +157,7 @@ function TypeForm({ type, onClose, onSaved }) {
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate();
+          if (form.name.trim() && !noPrice) save.mutate();
         }}
       >
         <ErrorNote error={save.error} />
@@ -173,8 +173,19 @@ function TypeForm({ type, onClose, onSaved }) {
           </Group>
         </div>
 
-        <fieldset>
-          <legend className="field-label">{t('admin.prices')}</legend>
+        <fieldset data-guard-anchor className="relative rounded-xl">
+          <legend className="field-label">{t('admin.prices')} <span className="text-red-600">*</span></legend>
+          {/* Minimal satu harga wajib diisi (lihat FormGuard). */}
+          <input
+            data-guard-proxy
+            data-guard-message={t('admin.needOnePrice')}
+            required
+            tabIndex={-1}
+            aria-hidden="true"
+            value={noPrice ? '' : '1'}
+            onChange={() => {}}
+            className="pointer-events-none absolute bottom-0 left-4 h-px w-px opacity-0"
+          />
           {['WITH_DRIVER', 'SELF_DRIVE'].map((g) => (
             <div key={g} className="mt-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
               <p className="mb-2 text-sm font-bold">{t(`service.${g}`)}</p>

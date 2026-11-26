@@ -10,8 +10,9 @@ import { Check, ChevronDown } from 'lucide-react';
  * @param {import('react').ComponentType} [icon]  ikon kecil di kiri (mis. MapPin)
  * @param {'md'|'sm'} [size]
  * @param {'left'|'right'} [align]  sisi panel menempel (pakai 'right' untuk kolom di tepi kanan)
+ * @param {boolean} [required]  wajib dipilih (nilai '' dianggap belum dipilih)
  */
-export function Select({ value, options, onChange, icon: Icon, id, size = 'md', align = 'left', className = '', ...aria }) {
+export function Select({ value, options, onChange, icon: Icon, id, size = 'md', align = 'left', required = false, className = '', ...aria }) {
   const autoId = useId();
   const buttonId = id || autoId;
   const listId = `${buttonId}-list`;
@@ -77,6 +78,7 @@ export function Select({ value, options, onChange, icon: Icon, id, size = 'md', 
       <button
         type="button"
         id={buttonId}
+        data-guard-target
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
         aria-haspopup="listbox"
@@ -89,6 +91,18 @@ export function Select({ value, options, onChange, icon: Icon, id, size = 'md', 
         <span className="min-w-0 flex-1 truncate">{selected?.label}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? 'rotate-180 text-brand-600' : ''}`} />
       </button>
+      {/* Wajib dipilih: input tak terlihat supaya ikut validasi form (lihat FormGuard). */}
+      {required && (
+        <input
+          data-guard-proxy
+          required
+          tabIndex={-1}
+          aria-hidden="true"
+          value={value ?? ''}
+          onChange={() => {}}
+          className="pointer-events-none absolute bottom-0 left-4 h-px w-px opacity-0"
+        />
+      )}
 
       {open && (
         <ul
