@@ -567,7 +567,7 @@
     "searchUnit": "Cari plat atau tipe",
     "noUnits": "Belum ada unit",
     "addTypeFirst": "Tambahkan tipe mobil dulu sebelum mendaftarkan unit.",
-    "plateHint": "Contoh: DN 1234 AB",
+    "plateHint": "Format plat Indonesia: 1–2 huruf wilayah, 1–4 angka, lalu 0–3 huruf. Contoh: DN 1234 AB, B 1 XYZ, DD 88.",
     "unitStatus": "Status unit",
     "unitStatusHint": "Status berubah otomatis saat pesanan berjalan atau servis dimulai.",
     "financeSub": "Pantau pemasukan dan pengeluaran usaha rental.",
@@ -628,7 +628,8 @@
     "addDriverHint": "Akun driver yang ditambahkan admin langsung disetujui dan bisa masuk.",
     "driverPasswordHint": "Minimal 8 karakter. Bagikan ke driver, minta diganti setelah masuk.",
     "driverCreated": "Akun driver dibuat",
-    "driverCreatedHint": "{{name}} sudah bisa masuk di aplikasi driver dengan data berikut. Simpan atau bagikan sekarang, kata sandi tidak ditampilkan lagi."
+    "driverCreatedHint": "{{name}} sudah bisa masuk di aplikasi driver dengan data berikut. Simpan atau bagikan sekarang, kata sandi tidak ditampilkan lagi.",
+    "platePattern": "Plat belum lengkap: minimal 1 huruf wilayah dan 1 angka (contoh: DN 1234 AB)."
   },
   "security": {
     "sendVia": "Kirim kode verifikasi lewat",

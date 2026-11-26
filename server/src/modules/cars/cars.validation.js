@@ -35,7 +35,12 @@ const plateNumber = z
   .string()
   .trim()
   .toUpperCase()
-  .transform((v) => v.replace(/\s+/g, ' '))
+  // Aturan TNKB: 1–2 huruf wilayah, 1–4 angka, 0–3 huruf seri. Spasi dirapikan otomatis
+  // ("DN1234AB" / "DN  1234 AB" → "DN 1234 AB"); format lain tetap ditolak regex di bawah.
+  .transform((v) => {
+    const m = v.replace(/\s+/g, '').match(/^([A-Z]{1,2})(\d{1,4})([A-Z]{0,3})$/);
+    return m ? [m[1], m[2], m[3]].filter(Boolean).join(' ') : v.replace(/\s+/g, ' ');
+  })
   .pipe(z.string().regex(/^[A-Z]{1,2} \d{1,4}( [A-Z]{1,3})?$/, 'Format plat nomor tidak valid (contoh: DN 1234 AB)'));
 
 const unitStatus = z.enum(['AVAILABLE', 'RENTED', 'MAINTENANCE']);

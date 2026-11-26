@@ -10,7 +10,8 @@
 // Kontrol buatan sendiri (Select, slot foto, dll.) bisa ikut dengan "proxy":
 //   <input data-guard-proxy required value={nilai} ... />  di dalam kontrolnya.
 // Atribut opsional:
-//   data-guard-message="..."  pesan khusus
+//   data-guard-message="..."  pesan khusus (untuk semua jenis kesalahan)
+//   data-guard-pattern="..."  pesan khusus bila isian tidak cocok dengan atribut `pattern`
 //   data-guard-anchor         pada pembungkus yang diberi garis merah (untuk proxy / input tersembunyi)
 //   data-guard-target         pada tombol pemicu kontrol (Select/DatePicker) di sebelah proxy
 import { useEffect } from 'react';
@@ -57,7 +58,7 @@ function messageFor(el) {
   if (v.tooLong) return t('tooLong', { max: el.maxLength });
   if (v.rangeUnderflow) return t('min', { min: el.min });
   if (v.rangeOverflow) return t('max', { max: el.max });
-  if (v.patternMismatch) return el.title || t('format');
+  if (v.patternMismatch) return el.getAttribute('data-guard-pattern') || el.title || t('format');
   if (v.customError) return el.validationMessage;
   return t('format');
 }

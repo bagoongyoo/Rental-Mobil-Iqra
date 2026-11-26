@@ -578,7 +578,7 @@
     "searchUnit": "Search plate or type",
     "noUnits": "No units yet",
     "addTypeFirst": "Add a car type before registering units.",
-    "plateHint": "Example: DN 1234 AB",
+    "plateHint": "Indonesian plate format: 1–2 region letters, 1–4 digits, then 0–3 letters. E.g. DN 1234 AB, B 1 XYZ, DD 88.",
     "unitStatus": "Unit status",
     "unitStatusHint": "Changes automatically when a rental starts or a service begins.",
     "financeSub": "Track the rental business income and expenses.",
@@ -642,7 +642,8 @@
     "addDriverHint": "Driver accounts added by an admin are approved right away and can sign in.",
     "driverPasswordHint": "At least 8 characters. Share it with the driver and ask them to change it after signing in.",
     "driverCreated": "Driver account created",
-    "driverCreatedHint": "{{name}} can now sign in to the driver app with these details. Save or share them now, the password will not be shown again."
+    "driverCreatedHint": "{{name}} can now sign in to the driver app with these details. Save or share them now, the password will not be shown again.",
+    "platePattern": "Plate is incomplete: at least 1 region letter and 1 digit (e.g. DN 1234 AB)."
   },
   "security": {
     "sendVia": "Send verification code via",
