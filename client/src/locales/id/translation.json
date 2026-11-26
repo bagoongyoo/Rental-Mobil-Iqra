@@ -568,5 +568,16 @@
     "forgotTitle": "Lupa kata sandi",
     "forgotText": "Masukkan email akun, lalu pilih kirim kode lewat email atau WhatsApp yang terdaftar.",
     "backToLogin": "Kembali ke halaman masuk"
+  },
+  "datePicker": {
+    "choose": "Pilih tanggal",
+    "prevMonth": "Bulan sebelumnya",
+    "nextMonth": "Bulan berikutnya",
+    "maxHint": "Pemesanan paling jauh 3 bulan ke depan (s.d. {{date}})"
+  },
+  "timePicker": {
+    "choose": "Pilih jam",
+    "hour": "Jam",
+    "minute": "Menit"
   }
 }

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Users, Briefcase, Cog, Fuel, SlidersHorizontal, CarFront, MapPin } from 'lucide-react';
 import { searchCars } from '../../lib/adapters';
 import { formatDateTime, formatIDR, wibToISO } from '../../lib/format';
-import { Badge, Button, CarImage, EmptyState, ErrorNote, Spinner } from '../../components/ui';
+import { Badge, Button, CarImage, EmptyState, ErrorNote, Select, Spinner } from '../../components/ui';
 import { SearchForm, searchFromParams } from './SearchForm';
 import { toSearchParams } from './HomePage';
 
@@ -28,7 +28,9 @@ export function SearchPage() {
   const results = useMemo(() => {
     let list = data || [];
     if (category !== 'ALL') list = list.filter((r) => r.category === category);
-    if (sort === 'seats') list = [...list].sort((a, b) => b.seats - a.seats);
+    // Yang habis selalu di bawah, lalu urut sesuai pilihan.
+    const soldOutLast = (a, b) => (a.available <= 0) - (b.available <= 0);
+    list = [...list].sort((a, b) => soldOutLast(a, b) || (sort === 'seats' ? b.seats - a.seats : a.totalPrice - b.totalPrice));
     return list;
   }, [data, category, sort]);
   const categories = [...new Set((data || []).map((r) => r.category))];
@@ -79,10 +81,15 @@ export function SearchPage() {
               </button>
             ))}
           </div>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} className="input h-9 w-auto shrink-0 text-sm" aria-label={t('search.sort')}>
-            <option value="price">{t('search.sortPrice')}</option>
-            <option value="seats">{t('search.sortSeats')}</option>
-          </select>
+          <Select
+            size="sm"
+            align="right"
+            className="shrink-0"
+            aria-label={t('search.sort')}
+            value={sort}
+            options={[{ value: 'price', label: t('search.sortPrice') }, { value: 'seats', label: t('search.sortSeats') }]}
+            onChange={setSort}
+          />
         </div>
       )}
 

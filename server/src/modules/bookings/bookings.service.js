@@ -18,6 +18,19 @@ const PACKAGES = {
 const PAYMENT_TIMEOUT_MINUTES = Number(process.env.PAYMENT_TIMEOUT_MINUTES || 60);
 const CANCELLABLE = ['WAITING_PAYMENT', 'PAID', 'CONFIRMED'];
 
+// Rencana pemesanan dibatasi paling jauh 3 bulan dari hari ini (sama dengan kalender di client).
+const MAX_ADVANCE_MONTHS = 3;
+const WITA_OFFSET_MS = 8 * 3600000;
+
+/** Akhir hari (23:59:59 WITA) pada tanggal yang sama 3 bulan dari hari ini. */
+function latestStartTime(now = new Date()) {
+  const local = new Date(now.getTime() + WITA_OFFSET_MS);
+  const day = local.getUTCDate();
+  const limit = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + MAX_ADVANCE_MONTHS, day));
+  if (limit.getUTCDate() !== day) limit.setUTCDate(0); // 30 Nov + 3 bulan → akhir Februari
+  return new Date(limit.getTime() + 86400000 - 1000 - WITA_OFFSET_MS);
+}
+
 function httpError(statusCode, message) {
   const err = new Error(message);
   err.statusCode = statusCode;
@@ -75,6 +88,9 @@ async function createBooking(customerId, data) {
   }
   if (data.startTime.getTime() < Date.now() + 60 * 60000) {
     throw httpError(400, 'Waktu mulai minimal 1 jam dari sekarang.');
+  }
+  if (data.startTime > latestStartTime()) {
+    throw httpError(400, `Pemesanan paling jauh ${MAX_ADVANCE_MONTHS} bulan ke depan.`);
   }
   if (data.serviceType === 'SELF_DRIVE' && !(await hasApprovedDocuments(customerId))) {
     throw httpError(403, 'Lepas kunci membutuhkan KTP dan SIM yang sudah disetujui admin.');
@@ -188,6 +204,8 @@ async function getDashboard(customerId) {
 }
 
 module.exports = {
+  MAX_ADVANCE_MONTHS,
+  latestStartTime,
   PACKAGES,
   computeEndTime,
   unitPriceFor,
