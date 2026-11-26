@@ -7,6 +7,10 @@ const prisma = require('../../config/db');
 const ordersService = require('../orders/orders.service');
 const trackingService = require('../tracking/tracking.service');
 const { getIO } = require('../../sockets');
+const {
+  NAME_MESSAGE, EMAIL_MESSAGE, PHONE_MESSAGE,
+  normalizeName, isValidName, normalizeEmail, isValidEmail, normalizePhone,
+} = require('../../utils/identity');
 
 const DRIVER_STORAGE_DIR = path.join(__dirname, '../../../storage/drivers');
 const CONDITION_STORAGE_DIR = path.join(__dirname, '../../../storage/condition-photos');
@@ -89,15 +93,26 @@ async function assertActiveApprovedDriver(driverUserId) {
  * Akun dibuat dengan isApproved = false & approvalStatus = PENDING (aktif hanya setelah disetujui Admin).
  */
 async function registerDriver(payload, files = {}) {
-  const name = String(payload?.name || '').trim();
-  const email = String(payload?.email || '').trim().toLowerCase();
+  const name = normalizeName(payload?.name);
+  const email = normalizeEmail(payload?.email);
   const password = String(payload?.password || '');
-  const phone = payload?.phone ? String(payload.phone).trim() : null;
+  const phone = payload?.phone ? normalizePhone(payload.phone) : null;
   const address = payload?.address ? String(payload.address).trim() : null;
   const licenseNumber = String(payload?.licenseNumber || '').trim();
 
   if (!name || !email || !password || !licenseNumber) {
     const err = new Error('Nama, email, password, dan nomor SIM (licenseNumber) wajib diisi.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Aturan data diri yang sama dengan pendaftaran pelanggan (utils/identity).
+  const invalid = !isValidName(name) ? NAME_MESSAGE
+    : !isValidEmail(email) ? EMAIL_MESSAGE
+      : payload?.phone && !phone ? PHONE_MESSAGE
+        : null;
+  if (invalid) {
+    const err = new Error(invalid);
     err.statusCode = 400;
     throw err;
   }

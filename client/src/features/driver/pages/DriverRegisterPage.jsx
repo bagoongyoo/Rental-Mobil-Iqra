@@ -20,6 +20,8 @@ import {
   getDriverTasksApi,
 } from '../api/driverApi';
 import { useAuth } from '../../../lib/auth';
+import { PhoneInput } from '../../../components/ui';
+import { EMAIL_PATTERN, NAME_PATTERN, cleanEmail, cleanName } from '../../../lib/identity';
 import { disconnectSocket } from '../../../lib/socket';
 
 function getInitials(name) {
@@ -132,7 +134,9 @@ export function DriverRegisterPage({ onLoginSuccess }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    // Nama hanya huruf & spasi, email tanpa spasi + huruf kecil (lib/identity).
+    const clean = name === 'name' ? cleanName(value) : name === 'email' ? cleanEmail(value) : value;
+    setForm((prev) => ({ ...prev, [name]: clean }));
   };
 
   const handlePickRegisterPhoto = async (field, setter, event) => {
@@ -522,8 +526,14 @@ export function DriverRegisterPage({ onLoginSuccess }) {
                       type="text"
                       name="name"
                       required
+                      minLength={2}
+                      maxLength={100}
+                      pattern={NAME_PATTERN}
+                      data-guard-pattern="Nama hanya boleh berisi huruf dan spasi."
+                      autoComplete="name"
                       value={form.name}
                       onChange={handleChange}
+                      onBlur={() => setForm((prev) => ({ ...prev, name: prev.name.trim() }))}
                       placeholder="Masukkan nama lengkap"
                       className="min-h-[44px] w-full px-3.5 rounded-[14px] bg-[#F3F3F2] border border-[#E6E6E4] text-sm text-[#1C1D1C] placeholder:text-[#787873] focus:bg-white focus:border-[#1C1D1C] focus:outline-none"
                     />
@@ -542,6 +552,9 @@ export function DriverRegisterPage({ onLoginSuccess }) {
                         type="email"
                         name="email"
                         required
+                        pattern={EMAIL_PATTERN}
+                        data-guard-pattern="Email belum lengkap (contoh: nama@email.com)."
+                        autoComplete="email"
                         value={form.email}
                         onChange={handleChange}
                         placeholder="driver@email.com"
@@ -556,15 +569,14 @@ export function DriverRegisterPage({ onLoginSuccess }) {
                       >
                         Nomor Telepon / WhatsApp *
                       </label>
-                      <input
+                      {/* Kode negara + bendera (default +62), hasil "+62 812 2941 9850" */}
+                      <PhoneInput
                         id="reg-phone"
-                        type="tel"
-                        name="phone"
                         required
                         value={form.phone}
-                        onChange={handleChange}
-                        placeholder="08xxxxxxxxxx"
-                        className="min-h-[44px] w-full px-3.5 rounded-[14px] bg-[#F3F3F2] border border-[#E6E6E4] text-sm text-[#1C1D1C] tabular-nums placeholder:text-[#787873] focus:bg-white focus:border-[#1C1D1C] focus:outline-none"
+                        onChange={(phone) => setForm((prev) => ({ ...prev, phone }))}
+                        boxClassName="h-11 w-full flex items-center rounded-[14px] bg-[#F3F3F2] border border-[#E6E6E4] text-sm text-[#1C1D1C] focus-within:bg-white focus-within:border-[#1C1D1C]"
+                        inputClassName="placeholder:text-[#787873]"
                       />
                     </div>
                   </div>

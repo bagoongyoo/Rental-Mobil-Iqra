@@ -13,3 +13,4 @@ export * from './DatePicker';
 export * from './TimePicker';
 export * from './Select';
 export * from './FormGuard';
+export * from './PhoneInput';

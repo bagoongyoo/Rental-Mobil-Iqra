@@ -314,7 +314,9 @@
     "registerLink": "Daftar",
     "haveAccount": "Sudah punya akun?",
     "registerButton": "Daftar",
-    "roleHint": "Driver baru bisa masuk setelah pendaftarannya disetujui admin."
+    "roleHint": "Driver baru bisa masuk setelah pendaftarannya disetujui admin.",
+    "nameHint": "Hanya huruf dan spasi.",
+    "phoneHint": "Tanpa angka 0 di depan, mis. +62 812 2941 9850."
   },
   "driverReg": {
     "title": "Daftar jadi driver",
@@ -692,6 +694,14 @@
     "summaryOne": "Ada 1 kolom wajib yang belum benar. Cek yang ditandai merah.",
     "summaryMany": "Ada {{count}} kolom wajib yang belum benar. Cek yang ditandai merah.",
     "photoRequired": "Foto {{name}} wajib diunggah.",
-    "photoTooBig": "Foto {{name}} melebihi 1 MB, kompres dulu."
+    "photoTooBig": "Foto {{name}} melebihi 1 MB, kompres dulu.",
+    "name": "Nama hanya boleh berisi huruf dan spasi.",
+    "emailFull": "Email belum lengkap (contoh: nama@email.com).",
+    "phone": "Nomor belum valid untuk {{country}}. Contoh: {{example}}"
+  },
+  "phone": {
+    "country": "Kode negara: {{country}}",
+    "search": "Cari negara atau kode",
+    "noResult": "Negara tidak ditemukan"
   }
 }

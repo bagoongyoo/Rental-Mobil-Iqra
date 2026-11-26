@@ -320,7 +320,9 @@
     "registerLink": "Sign up",
     "haveAccount": "Already have an account?",
     "registerButton": "Sign up",
-    "roleHint": "New drivers can sign in once an admin approves their registration."
+    "roleHint": "New drivers can sign in once an admin approves their registration.",
+    "nameHint": "Letters and spaces only.",
+    "phoneHint": "Without the leading 0, e.g. +62 812 2941 9850."
   },
   "driverReg": {
     "title": "Become a driver",
@@ -706,6 +708,14 @@
     "summaryOne": "1 required field is not filled in correctly. Check the one marked in red.",
     "summaryMany": "{{count}} required fields are not filled in correctly. Check the ones marked in red.",
     "photoRequired": "The {{name}} photo is required.",
-    "photoTooBig": "The {{name}} photo is over 1 MB, compress it first."
+    "photoTooBig": "The {{name}} photo is over 1 MB, compress it first.",
+    "name": "Name may only contain letters and spaces.",
+    "emailFull": "Email is incomplete (e.g. name@email.com).",
+    "phone": "Not a valid number for {{country}}. Example: {{example}}"
+  },
+  "phone": {
+    "country": "Country code: {{country}}",
+    "search": "Search country or code",
+    "noResult": "No country found"
   }
 }

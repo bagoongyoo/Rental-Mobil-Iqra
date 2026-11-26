@@ -1,10 +1,12 @@
 const { z } = require('zod');
+const { zName, zEmail, zPhone } = require('../../utils/identity');
 
 const registerSchema = z.object({
-  name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(100),
-  email: z.string().trim().toLowerCase().email('Format email tidak valid'),
+  // Nama hanya huruf & spasi, email lengkap, telepon "+62 812 2941 9850" (lihat utils/identity).
+  name: zName,
+  email: zEmail,
   password: z.string().min(8, 'Password minimal 8 karakter').max(100),
-  phone: z.string().trim().min(8).max(20).optional(),
+  phone: zPhone.optional(),
   // Pendaftaran publik hanya untuk pelanggan dan driver. Akun ADMIN dibuat lewat seed.
   role: z.enum(['CUSTOMER', 'DRIVER']).default('CUSTOMER'),
 });
