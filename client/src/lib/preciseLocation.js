@@ -10,11 +10,12 @@ export const TARGET_ACCURACY_M = 20;
 /** Di atas ini lokasi ditandai "kurang akurat" (meter). */
 export const LOW_ACCURACY_M = 100;
 
+// Cap waktu = saat titik diterima (bukan pos.timestamp: di sebagian HP/emulator nilainya tertinggal).
 const toFix = (pos) => ({
   lat: pos.coords.latitude,
   lng: pos.coords.longitude,
   accuracy: pos.coords.accuracy,
-  timestamp: new Date(pos.timestamp || Date.now()).toISOString(),
+  timestamp: new Date().toISOString(),
 });
 
 /**
@@ -46,23 +47,26 @@ export function getPreciseLocation({ targetAccuracy = TARGET_ACCURACY_M, maxWait
       fn();
     };
 
-    watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const fix = toFix(pos);
-        if (!best || fix.accuracy < best.accuracy) {
-          best = fix;
-          onProgress?.(fix);
-        }
-        if (fix.accuracy <= targetAccuracy) finish(() => resolve(fix));
-      },
-      (err) => {
-        // Izin ditolak → langsung berhenti. Error lain: tunggu, mungkin titik berikutnya masuk
-        // (bila sampai waktu habis tetap tidak ada, timer di bawah yang menolak).
-        if (err.code === 1) finish(() => reject(err));
-      },
-      // maximumAge 0: selalu posisi baru, bukan sisa cache.
-      { enableHighAccuracy: true, maximumAge: 0, timeout: maxWaitMs },
-    );
+    const onFix = (pos) => {
+      if (done) return;
+      const fix = toFix(pos);
+      if (!best || fix.accuracy < best.accuracy) {
+        best = fix;
+        onProgress?.(fix);
+      }
+      if (fix.accuracy <= targetAccuracy) finish(() => resolve(fix));
+    };
+    const onError = (err) => {
+      // Izin ditolak → langsung berhenti. Error lain: tunggu, mungkin titik berikutnya masuk
+      // (bila sampai waktu habis tetap tidak ada, timer di bawah yang menolak).
+      if (err.code === 1) finish(() => reject(err));
+    };
+
+    // maximumAge 0: pantau posisi baru, bukan sisa cache.
+    watchId = navigator.geolocation.watchPosition(onFix, onError, { enableHighAccuracy: true, maximumAge: 0, timeout: maxWaitMs });
+    // Bila GPS sudah dipantau di tempat lain dan HP sedang diam, posisi "baru" bisa lama tidak datang.
+    // Ambil juga posisi terakhir yang masih segar (≤ 5 detik) sebagai titik awal, lalu tetap dipertajam.
+    navigator.geolocation.getCurrentPosition(onFix, onError, { enableHighAccuracy: true, maximumAge: 5000, timeout: maxWaitMs });
 
     timer = setTimeout(() => {
       finish(() => {

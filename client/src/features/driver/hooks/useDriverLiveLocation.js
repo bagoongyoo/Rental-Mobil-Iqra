@@ -3,6 +3,9 @@ import { connectSocket, emitDriverLocation } from '../../../lib/socket';
 import { useAuth } from '../../../lib/auth';
 import { sendDriverLocationHttpApi } from '../api/driverApi';
 import { getPreciseLocation, isBetterFix } from '../../../lib/preciseLocation';
+import i18n from '../../../lib/i18n';
+
+const msg = (key) => i18n.t(`driver.gpsError.${key}`);
 
 /** Penyegaran GPS akurat berkala untuk menjaga ketepatan lokasi driver. */
 export const GPS_REFRESH_MS = 5 * 60 * 1000;
@@ -33,10 +36,17 @@ export function useDriverLiveLocation({ activeOrderId = null, isTaskOngoing = fa
 
   const requestLocationPermission = useCallback(async () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      const msg = 'Perangkat atau browser ini tidak mendukung fitur GPS (Geolocation API).';
+      const text = msg('unsupported');
       setPermissionStatus('unsupported');
-      setGpsError(msg);
-      throw new Error(msg);
+      setGpsError(text);
+      throw new Error(text);
+    }
+
+    // Posisi yang sedang dipantau masih segar & akurat → langsung dipakai (tombol tidak menunggu).
+    const recent = coordsRef.current;
+    if (recent && Date.now() - new Date(recent.timestamp).getTime() < 15000 && recent.accuracy <= 50) {
+      setPermissionStatus('granted');
+      return recent;
     }
 
     try {
@@ -47,15 +57,14 @@ export function useDriverLiveLocation({ activeOrderId = null, isTaskOngoing = fa
       setLastRefreshAt(new Date().toISOString());
       return fix;
     } catch (error) {
-      let message = 'Gagal mendapatkan lokasi GPS.';
+      let message = msg('failed');
       if (error.code === 1) {
         setPermissionStatus('denied');
-        message =
-          'Izin lokasi (GPS) ditolak. Anda wajib mengizinkan akses lokasi di browser/HP sebelum bisa Siap Jalan atau Mulai Tugas.';
+        message = msg('denied');
       } else if (error.code === 2) {
-        message = 'Sinyal GPS tidak tersedia. Pastikan GPS di HP Anda menyala.';
+        message = msg('unavailable');
       } else if (error.code === 3) {
-        message = 'Waktu permintaan GPS habis. Coba lagi di tempat dengan sinyal lebih baik.';
+        message = msg('timeout');
       }
       setGpsError(message);
       throw new Error(message);
@@ -96,7 +105,7 @@ export function useDriverLiveLocation({ activeOrderId = null, isTaskOngoing = fa
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
           setPermissionStatus('denied');
-          setGpsError('Izin lokasi (GPS) dicabut. Harap aktifkan kembali izin lokasi.');
+          setGpsError(msg('revoked'));
         }
       },
       {
@@ -129,7 +138,7 @@ export function useDriverLiveLocation({ activeOrderId = null, isTaskOngoing = fa
       } catch (err) {
         if (err?.code === 1) {
           setPermissionStatus('denied');
-          setGpsError('Izin lokasi (GPS) dicabut. Harap aktifkan kembali izin lokasi.');
+          setGpsError(msg('revoked'));
         }
       }
     };

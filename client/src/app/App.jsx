@@ -17,6 +17,7 @@ import { LoginPage, RegisterPage } from '../features/customer/AuthPages';
 // Halaman driver dari Dev 3, dimuat terpisah supaya halaman pelanggan tetap ringan.
 const DriverDashboardPage = lazy(() => import('../features/driver').then((m) => ({ default: m.DriverDashboardPage })));
 const DriverRegisterPage = lazy(() => import('../features/driver').then((m) => ({ default: m.DriverRegisterPage })));
+const DriverLayout = lazy(() => import('../features/driver/DriverLayout').then((m) => ({ default: m.DriverLayout })));
 
 // Panel admin dari Dev 1 (features/admin), juga dimuat terpisah.
 const AdminApp = lazy(() => import('../features/admin'));
@@ -45,8 +46,11 @@ export function App() {
               <Route path="pesanan/:id" element={<RequireRole role="CUSTOMER"><BookingDetailPage /></RequireRole>} />
               <Route path="akun" element={<RequireRole role="CUSTOMER"><AccountPage /></RequireRole>} />
             </Route>
-            <Route path="driver/daftar" element={<DriverRegisterPage />} />
-            <Route path="driver/*" element={<RequireRole role="DRIVER"><DriverDashboardPage /></RequireRole>} />
+            <Route path="driver" element={<DriverLayout />}>
+              <Route index element={<RequireRole role="DRIVER"><DriverDashboardPage /></RequireRole>} />
+              <Route path="daftar" element={<DriverRegisterPage />} />
+              <Route path="*" element={<Navigate to="/driver" replace />} />
+            </Route>
             <Route path="admin/*" element={<RequireRole role="ADMIN"><AdminApp /></RequireRole>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
