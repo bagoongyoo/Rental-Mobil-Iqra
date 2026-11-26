@@ -1,15 +1,16 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Check, Clock3, CarFront, UserRound, MapPin, CreditCard, Navigation, LocateFixed, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
-import { formatDateTime, formatIDR, timeAgo } from '../../lib/format';
-import { getSocket } from '../../lib/socket';
+import { formatDateTime, formatIDR } from '../../lib/format';
+import { myBooking } from '../../lib/adapters';
+import { useOrderUpdates } from '../../lib/useOrderUpdates';
+import { CustomerDriverMap } from '../driver';
 import { Button, CarImage, ErrorNote, Modal, Spinner, StatusBadge, toast } from '../../components/ui';
 import { mapsLink } from '../../lib/maps';
 
-const LiveMap = lazy(() => import('../../components/map/LiveMap'));
 const FLOW = ['PENDING_PAYMENT', 'PAID', 'CONFIRMED', 'ONGOING', 'COMPLETED'];
 
 function useCountdown(to) {
@@ -43,35 +44,19 @@ export function BookingDetailPage() {
   const qc = useQueryClient();
   const [simOpen, setSimOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  const [livePos, setLivePos] = useState(null);
-  const { data, isLoading, error, refetch } = useQuery({ queryKey: ['booking', id], queryFn: () => api(`/bookings/${id}`) });
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ['booking', id], queryFn: () => myBooking(id) });
   const b = data?.booking;
   const hasPin = b?.pickupLat != null && b?.pickupLng != null;
   const countdown = useCountdown(b?.status === 'PENDING_PAYMENT' ? b.expiresAt : null);
-  const trackQ = useQuery({ queryKey: ['track', id], queryFn: () => api(`/tracking/bookings/${id}`), enabled: b?.status === 'ONGOING' && b?.service === 'WITH_DRIVER' });
-
-  // Update status & posisi driver realtime
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-    const onBooking = (p) => {
-      if (String(p.id) === String(id)) {
-        refetch();
-        qc.invalidateQueries({ queryKey: ['my-bookings'] });
-      }
-    };
-    const onLoc = (p) => p.booking && String(p.booking.id) === String(id) && setLivePos(p);
-    socket.on('booking:updated', onBooking);
-    socket.on('driver:location', onLoc);
-    return () => {
-      socket.off('booking:updated', onBooking);
-      socket.off('driver:location', onLoc);
-    };
-  }, [id, refetch, qc]);
+  // Update status realtime (Socket.IO Dev 3)
+  useOrderUpdates(() => {
+    refetch();
+    qc.invalidateQueries({ queryKey: ['my-bookings'] });
+  }, id);
 
   const pay = useMutation({
     mutationFn: () => api(`/payments/${id}/pay`, { method: 'POST' }),
-    onSuccess: async (res) => {
+    onSuccess: async ({ data: res }) => {
       if (res.mode === 'simulate') return setSimOpen(true);
       const snap = await loadSnap(res.clientKey, res.isProduction);
       snap.pay(res.token, { onSuccess: () => refetch(), onPending: () => refetch(), onClose: () => refetch() });
@@ -98,7 +83,6 @@ export function BookingDetailPage() {
 
   const stepIndex = FLOW.indexOf(b.status);
   const qtyUnit = b.package === 'MONTHLY' ? 'month' : b.package === 'YEARLY' ? 'year' : 'day';
-  const driverPos = livePos || trackQ.data?.driver;
   const canCancel = ['PENDING_PAYMENT', 'PAID', 'CONFIRMED'].includes(b.status);
 
   return (
@@ -152,22 +136,9 @@ export function BookingDetailPage() {
         <section className="card mb-4 overflow-hidden">
           <div className="flex items-center justify-between p-4 pb-3">
             <h2 className="flex items-center gap-2 font-bold text-slate-900 dark:text-white"><Navigation className="h-4 w-4 text-brand-600" />{t('detail.driverLocation')}</h2>
-            {driverPos?.at && <span className="text-xs text-slate-500">{timeAgo(driverPos.at)}</span>}
           </div>
-          {driverPos?.lat ? (
-            <Suspense fallback={<Spinner />}>
-              <LiveMap
-                className="h-64"
-                points={[
-                  { id: 'driver', lat: driverPos.lat, lng: driverPos.lng, label: '🚗', title: b.driver?.name, active: true },
-                  ...(hasPin ? [{ id: 'pickup', lat: b.pickupLat, lng: b.pickupLng, label: 'J', title: t('checkout.pickup'), subtitle: b.pickupAddress }] : []),
-                ]}
-                trail={(trackQ.data?.trail || []).map((p) => [p.lat, p.lng])}
-              />
-            </Suspense>
-          ) : (
-            <p className="px-4 pb-4 text-sm text-slate-500">{t('detail.noLocation')}</p>
-          )}
+          {/* Peta posisi driver dari modul Dev 3 */}
+          <div className="px-4 pb-4"><CustomerDriverMap orderId={b.id} /></div>
         </section>
       )}
 
@@ -188,11 +159,6 @@ export function BookingDetailPage() {
               {hasPin && <span className="flex items-center gap-1 font-semibold text-brand-700 dark:text-brand-400"><LocateFixed className="h-3.5 w-3.5" />{t('pickup.pinSaved')}</span>}
               <a href={mapsLink(b)} target="_blank" rel="noreferrer" className="flex items-center gap-1 font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white"><ExternalLink className="h-3.5 w-3.5" />{t('pickup.openMaps')}</a>
             </span>
-            {hasPin && b.status !== 'ONGOING' && (
-              <Suspense fallback={null}>
-                <LiveMap className="mt-2 h-40 overflow-hidden rounded-xl" points={[{ id: 'pickup', lat: b.pickupLat, lng: b.pickupLng, label: b.service === 'WITH_DRIVER' ? 'J' : 'A', title: b.pickupAddress, active: true }]} />
-              </Suspense>
-            )}
           </Row>
           {b.service === 'WITH_DRIVER' && <Row icon={UserRound} label={t('detail.driver')}>{b.driver ? `${b.driver.name} · ${b.driver.phone || ''}` : t('detail.notAssigned')}</Row>}
           {b.service === 'SELF_DRIVE' && <Row icon={CarFront} label={t('detail.unit')}>{b.unit ? b.unit.plate : t('detail.notAssigned')}</Row>}

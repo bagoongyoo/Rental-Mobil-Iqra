@@ -304,7 +304,8 @@
     "reupload": "Replace photo",
     "docUploaded": "Document sent, awaiting review",
     "rejectReason": "Rejection reason",
-    "compressed": "Compressed from {{before}} to {{after}}"
+    "compressed": "Compressed from {{before}} to {{after}}",
+    "profileSoon": "Profile editing will be available once the users module (Dev 1) is ready."
   },
   "auth": {
     "loginTitle": "Sign in",

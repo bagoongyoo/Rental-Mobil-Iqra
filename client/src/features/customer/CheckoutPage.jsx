@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlert, CalendarClock, UserRound, ArrowLeft, NotebookPen } from 'lucide-react';
 import { api } from '../../lib/api';
+import { myDocuments, searchCars } from '../../lib/adapters';
 import { useAuth } from '../../lib/auth';
 import { formatDateTime, formatIDR, wibToISO } from '../../lib/format';
 import { PACKAGE_PRICE_FIELD } from '../../lib/constants';
@@ -21,27 +22,29 @@ export function CheckoutPage() {
   const [form, setForm] = useState({ notes: '' });
   const [loc, setLoc] = useState(emptyLocation);
 
-  const typeQ = useQuery({ queryKey: ['type', carTypeId], queryFn: () => api(`/cars/types/${carTypeId}`), enabled: Boolean(carTypeId) });
-  // Biaya tambahan diatur admin (menu Mobil > Biaya tambahan).
-  const feesQ = useQuery({ queryKey: ['fees'], queryFn: () => api('/cars/fees') });
-  const docsQ = useQuery({ queryKey: ['my-docs'], queryFn: () => api('/documents/mine'), enabled: s.service === 'SELF_DRIVE' });
+  const typeQ = useQuery({
+    queryKey: ['type', carTypeId, s],
+    queryFn: () => searchCars({ pkg: s.package, startISO: wibToISO(s.date, s.time), qty: s.qty, carTypeId }),
+    enabled: Boolean(carTypeId),
+  });
+  const docsQ = useQuery({ queryKey: ['my-docs'], queryFn: myDocuments, enabled: s.service === 'SELF_DRIVE' });
   const create = useMutation({
-    mutationFn: () => api('/bookings', { method: 'POST', body: { service: s.service, package: s.package, city: s.city, startAt: wibToISO(s.date, s.time), quantity: s.qty, carTypeId, notes: form.notes, pickupAddress: loc.address, pickupLat: loc.lat, pickupLng: loc.lng } }),
-    onSuccess: ({ booking }) => navigate(`/pesanan/${booking.id}`, { replace: true }),
+    mutationFn: () => api('/bookings', { method: 'POST', body: { serviceType: s.service, packageType: s.package, pickupCity: s.city, startTime: wibToISO(s.date, s.time), duration: s.qty, carTypeId, notes: form.notes, pickupAddress: loc.address, pickupLat: loc.lat, pickupLng: loc.lng } }),
+    onSuccess: ({ data }) => navigate(`/pesanan/${data.id}`, { replace: true }),
   });
 
   if (typeQ.isLoading) return <Spinner />;
-  const type = typeQ.data?.type;
+  const type = typeQ.data?.[0];
   if (!type) return <ErrorNote className="m-4" error={typeQ.error || { message: t('common.notFound') }} />;
 
   const unitPrice = type[PACKAGE_PRICE_FIELD[s.package]];
   const rent = unitPrice * s.qty;
-  const fees = feesQ.data?.fees || { serviceFee: 0, deliveryFee: 0 };
+  const fees = { serviceFee: 0, deliveryFee: 0 }; // biaya tambahan belum ada di skema bersama
   const serviceFee = fees.serviceFee;
   const deliveryFee = s.service === 'SELF_DRIVE' ? fees.deliveryFee : 0;
   const total = rent + serviceFee + deliveryFee;
   const qtyUnit = s.package === 'MONTHLY' ? 'month' : s.package === 'YEARLY' ? 'year' : 'day';
-  const approved = (docsQ.data?.documents || []).filter((d) => d.status === 'APPROVED').length;
+  const approved = (docsQ.data || []).filter((d) => d.status === 'APPROVED').length;
   const needDocs = s.service === 'SELF_DRIVE' && docsQ.data && approved < 2;
 
   return (

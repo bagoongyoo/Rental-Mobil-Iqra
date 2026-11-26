@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { MapPin, CalendarDays, Clock, Search, UserRound, KeyRound } from 'lucide-react';
-import { api } from '../../lib/api';
 import { dateStrWIB, TZ_LABEL } from '../../lib/format';
 import { MAX_QTY, SERVICE_PACKAGES } from '../../lib/constants';
 import { Button } from '../../components/ui';
@@ -27,7 +25,8 @@ export function searchFromParams(params) {
 export function SearchForm({ initial, onSubmit, compact }) {
   const { t } = useTranslation();
   const [v, setV] = useState(initial || defaultSearch());
-  const { data } = useQuery({ queryKey: ['cities'], queryFn: () => api('/cars/cities') });
+  // Skema bersama belum menyimpan kota per unit; layanan saat ini di Palu.
+  const data = { cities: [DEFAULT_CITY] };
   const cities = data?.cities || [];
 
   useEffect(() => {

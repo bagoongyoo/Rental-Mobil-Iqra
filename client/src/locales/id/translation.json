@@ -298,7 +298,8 @@
     "reupload": "Ganti foto",
     "docUploaded": "Dokumen terkirim, menunggu verifikasi",
     "rejectReason": "Alasan ditolak",
-    "compressed": "Dikompres dari {{before}} menjadi {{after}}"
+    "compressed": "Dikompres dari {{before}} menjadi {{after}}",
+    "profileSoon": "Ubah profil akan tersedia setelah modul pengguna (Dev 1) siap."
   },
   "auth": {
     "loginTitle": "Masuk",

@@ -1,5 +1,5 @@
 // Dashboard pelanggan (Dev 2): ringkasan setelah login.
-// Data dari GET /api/bookings/dashboard, diperbarui realtime lewat event socket "booking:updated".
+// Data dari GET /api/bookings/dashboard, diperbarui realtime lewat event socket "order:status:update" (Dev 3).
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,9 +8,9 @@ import {
   AlarmClock, CalendarClock, CarFront, ChevronRight, CircleCheck, CreditCard, KeyRound, Lock, MapPin, MessageCircle,
   Navigation, Phone, ReceiptText, RotateCcw, ShieldAlert, ShieldCheck, SlidersHorizontal, UserRound, Wallet,
 } from 'lucide-react';
-import { api } from '../../lib/api';
+import { myDashboard } from '../../lib/adapters';
 import { useAuth } from '../../lib/auth';
-import { getSocket } from '../../lib/socket';
+import { useOrderUpdates } from '../../lib/useOrderUpdates';
 import { dateStrWIB, formatDate, formatDateTime, formatIDR, localHour } from '../../lib/format';
 import { Badge, Button, CarImage, ErrorNote, Spinner, StatusBadge } from '../../components/ui';
 import { toSearchParams } from './HomePage';
@@ -58,19 +58,13 @@ export function DashboardPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const user = useAuth((s) => s.user);
-  const { data, isLoading, error } = useQuery({ queryKey: ['customer-dashboard'], queryFn: () => api('/bookings/dashboard'), refetchInterval: 60_000 });
+  const { data, isLoading, error } = useQuery({ queryKey: ['customer-dashboard'], queryFn: myDashboard, refetchInterval: 60_000 });
 
   // Status pesanan berubah (dibayar, unit ditugaskan, mulai, selesai) -> muat ulang ringkasan.
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-    const refresh = () => {
-      qc.invalidateQueries({ queryKey: ['customer-dashboard'] });
-      qc.invalidateQueries({ queryKey: ['my-bookings'] });
-    };
-    socket.on('booking:updated', refresh);
-    return () => socket.off('booking:updated', refresh);
-  }, [qc]);
+  useOrderUpdates(() => {
+    qc.invalidateQueries({ queryKey: ['customer-dashboard'] });
+    qc.invalidateQueries({ queryKey: ['my-bookings'] });
+  });
 
   const hour = localHour();
   const greet = hour < 4 ? 'greetNight' : hour < 11 ? 'greetMorning' : hour < 15 ? 'greetAfternoon' : hour < 18 ? 'greetEvening' : 'greetNight';

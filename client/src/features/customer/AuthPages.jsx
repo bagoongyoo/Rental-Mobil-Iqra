@@ -27,7 +27,7 @@ export function LoginPage() {
   const next = params.get('next');
   const m = useMutation({
     mutationFn: () => api('/auth/login', { method: 'POST', body: form }),
-    onSuccess: ({ token, user: u }) => {
+    onSuccess: ({ data: { token, user: u } }) => {
       login(token, u);
       navigate(next && u.role === 'CUSTOMER' ? next : homeFor(u.role), { replace: true });
     },
@@ -49,7 +49,6 @@ export function LoginPage() {
       >
         <Field label="Email"><input className="input" type="email" autoComplete="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
         <Field label={t('auth.password')}><input className="input" type="password" autoComplete="current-password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
-        <p className="-mt-1 text-right text-sm"><Link to="/lupa-sandi" className="font-semibold text-brand-700 dark:text-brand-400">{t('security.forgotLink')}</Link></p>
         <ErrorNote error={m.error} />
         <Button type="submit" size="lg" className="w-full" loading={m.isPending}>{t('nav.login')}</Button>
       </form>
@@ -66,7 +65,7 @@ export function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
   const m = useMutation({
     mutationFn: () => api('/auth/register', { method: 'POST', body: form }),
-    onSuccess: ({ token, user }) => {
+    onSuccess: ({ data: { token, user } }) => {
       login(token, user);
       navigate(params.get('next') || '/dasbor', { replace: true });
     },
@@ -90,7 +89,7 @@ export function RegisterPage() {
         <Field label={t('auth.name')} error={err.name}><input className="input" autoComplete="name" required value={form.name} onChange={set('name')} /></Field>
         <Field label="Email" error={err.email}><input className="input" type="email" autoComplete="email" required value={form.email} onChange={set('email')} /></Field>
         <Field label={t('auth.phone')} error={err.phone}><input className="input" type="tel" autoComplete="tel" required value={form.phone} onChange={set('phone')} placeholder="08xxxxxxxxxx" /></Field>
-        <Field label={t('auth.password')} error={err.password} hint={t('auth.passwordHint')}><input className="input" type="password" autoComplete="new-password" required minLength={6} value={form.password} onChange={set('password')} /></Field>
+        <Field label={t('auth.password')} error={err.password} hint={t('auth.passwordHint')}><input className="input" type="password" autoComplete="new-password" required minLength={8} value={form.password} onChange={set('password')} /></Field>
         <ErrorNote error={m.error?.details ? null : m.error} />
         <Button type="submit" size="lg" className="w-full" loading={m.isPending}>{t('auth.registerButton')}</Button>
       </form>

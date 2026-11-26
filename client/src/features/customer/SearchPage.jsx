@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Users, Briefcase, Cog, Fuel, SlidersHorizontal, CarFront, MapPin } from 'lucide-react';
-import { api } from '../../lib/api';
+import { searchCars } from '../../lib/adapters';
 import { formatDateTime, formatIDR, wibToISO } from '../../lib/format';
 import { Badge, Button, CarImage, EmptyState, ErrorNote, Spinner } from '../../components/ui';
 import { SearchForm, searchFromParams } from './SearchForm';
@@ -22,16 +22,16 @@ export function SearchPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['search', s],
     enabled: Boolean(s.city),
-    queryFn: () => api('/availability/search', { query: { service: s.service, package: s.package, city: s.city, startAt: wibToISO(s.date, s.time), quantity: s.qty } }),
+    queryFn: () => searchCars({ pkg: s.package, startISO: wibToISO(s.date, s.time), qty: s.qty }),
   });
 
   const results = useMemo(() => {
-    let list = data?.results || [];
+    let list = data || [];
     if (category !== 'ALL') list = list.filter((r) => r.category === category);
     if (sort === 'seats') list = [...list].sort((a, b) => b.seats - a.seats);
     return list;
   }, [data, category, sort]);
-  const categories = [...new Set((data?.results || []).map((r) => r.category))];
+  const categories = [...new Set((data || []).map((r) => r.category))];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-4 sm:py-6">

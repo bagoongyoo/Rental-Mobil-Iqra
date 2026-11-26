@@ -2,7 +2,7 @@ import { useNavigate, Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { BadgeCheck, ShieldCheck, Wrench, Wallet, Users, Briefcase, Cog, ChevronDown, ArrowRight } from 'lucide-react';
-import { api } from '../../lib/api';
+import { listCarTypes } from '../../lib/adapters';
 import { dateStrWIB, formatIDR } from '../../lib/format';
 import { CarImage, CarSvg } from '../../components/ui';
 import { SearchForm } from './SearchForm';
@@ -13,7 +13,7 @@ export const toSearchParams = (v) => new URLSearchParams({ service: v.service, p
 export function HomePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data } = useQuery({ queryKey: ['types'], queryFn: () => api('/cars/types') });
+  const { data } = useQuery({ queryKey: ['types'], queryFn: listCarTypes });
 
   const perks = [
     { icon: Wallet, title: t('home.perk1'), text: t('home.perk1Text') },
@@ -72,7 +72,7 @@ export function HomePage() {
           </div>
         </div>
         <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4">
-          {(data?.types || []).map((type) => {
+          {(data || []).map((type) => {
             const from = type.priceDaily ?? type.priceDriver12h;
             return (
               <Link

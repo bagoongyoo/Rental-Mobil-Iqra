@@ -13,12 +13,15 @@ import { AccountPage } from '../features/customer/AccountPage';
 import { DashboardPage } from '../features/customer/DashboardPage';
 import { PhotoCreditsPage } from '../features/customer/PhotoCreditsPage';
 import { LoginPage, RegisterPage } from '../features/customer/AuthPages';
-import { ForgotPasswordPage } from '../features/customer/AccountSecurity';
 
-// Panel admin dan driver dimuat terpisah supaya halaman pelanggan tetap ringan.
-const AdminApp = lazy(() => import('../features/admin/AdminApp'));
-const DriverApp = lazy(() => import('../features/driver/DriverApp'));
-const DriverRegisterPage = lazy(() => import('../features/driver/DriverRegisterPage'));
+// Halaman driver dari Dev 3, dimuat terpisah supaya halaman pelanggan tetap ringan.
+const DriverDashboardPage = lazy(() => import('../features/driver').then((m) => ({ default: m.DriverDashboardPage })));
+const DriverRegisterPage = lazy(() => import('../features/driver').then((m) => ({ default: m.DriverRegisterPage })));
+
+// Panel admin dibuat Dev 1 (features/admin). Sampai siap, tampilkan halaman sementara.
+function AdminPlaceholder() {
+  return <p className="p-6 text-center text-sm text-slate-500">Panel admin sedang disiapkan (Dev 1).</p>;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
@@ -37,7 +40,6 @@ export function App() {
               <Route path="kredit-foto" element={<PhotoCreditsPage />} />
               <Route path="masuk" element={<LoginPage />} />
               <Route path="daftar" element={<RegisterPage />} />
-              <Route path="lupa-sandi" element={<ForgotPasswordPage />} />
               <Route path="dasbor" element={<RequireRole role="CUSTOMER"><DashboardPage /></RequireRole>} />
               <Route path="pesan" element={<RequireRole role="CUSTOMER"><CheckoutPage /></RequireRole>} />
               <Route path="pesanan" element={<RequireRole role="CUSTOMER"><BookingsPage /></RequireRole>} />
@@ -45,8 +47,8 @@ export function App() {
               <Route path="akun" element={<RequireRole role="CUSTOMER"><AccountPage /></RequireRole>} />
             </Route>
             <Route path="driver/daftar" element={<DriverRegisterPage />} />
-            <Route path="driver/*" element={<RequireRole role="DRIVER"><DriverApp /></RequireRole>} />
-            <Route path="admin/*" element={<RequireRole role="ADMIN"><AdminApp /></RequireRole>} />
+            <Route path="driver/*" element={<RequireRole role="DRIVER"><DriverDashboardPage /></RequireRole>} />
+            <Route path="admin/*" element={<RequireRole role="ADMIN"><AdminPlaceholder /></RequireRole>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

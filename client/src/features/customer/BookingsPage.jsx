@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ReceiptText, ChevronRight } from 'lucide-react';
-import { api } from '../../lib/api';
+import { myBookings } from '../../lib/adapters';
 import { formatDateTime, formatIDR } from '../../lib/format';
 import { ACTIVE_STATUSES } from '../../lib/constants';
 import { Button, CarImage, EmptyState, ErrorNote, Segmented, Spinner, StatusBadge } from '../../components/ui';
@@ -11,8 +11,8 @@ import { Button, CarImage, EmptyState, ErrorNote, Segmented, Spinner, StatusBadg
 export function BookingsPage() {
   const { t } = useTranslation();
   const [tab, setTab] = useState('active');
-  const { data, isLoading, error } = useQuery({ queryKey: ['my-bookings'], queryFn: () => api('/bookings') });
-  const list = (data?.bookings || []).filter((b) => (tab === 'active' ? ACTIVE_STATUSES.includes(b.status) : !ACTIVE_STATUSES.includes(b.status)));
+  const { data, isLoading, error } = useQuery({ queryKey: ['my-bookings'], queryFn: myBookings });
+  const list = (data || []).filter((b) => (tab === 'active' ? ACTIVE_STATUSES.includes(b.status) : !ACTIVE_STATUSES.includes(b.status)));
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-4 sm:py-6">
