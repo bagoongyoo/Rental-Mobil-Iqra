@@ -583,7 +583,8 @@
   "datePicker": {
     "choose": "Choose a date",
     "prevMonth": "Previous month",
-    "nextMonth": "Next month"
+    "nextMonth": "Next month",
+    "maxHint": "Bookings up to 3 months ahead (until {{date}})"
   },
   "timePicker": {
     "choose": "Choose a time",

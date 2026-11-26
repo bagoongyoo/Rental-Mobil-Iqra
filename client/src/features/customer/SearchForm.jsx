@@ -24,6 +24,16 @@ export function earliestStart() {
   return { date: day.toISOString().slice(0, 10), time: `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}` };
 }
 
+/** Batas rencana pemesanan: paling jauh 3 bulan dari hari ini (WITA). */
+export const MAX_ADVANCE_MONTHS = 3;
+export function latestStartDate() {
+  const d = new Date(`${dateStrWIB(0)}T00:00:00Z`);
+  const day = d.getUTCDate();
+  d.setUTCMonth(d.getUTCMonth() + MAX_ADVANCE_MONTHS);
+  if (d.getUTCDate() !== day) d.setUTCDate(0); // mis. 30 Nov + 3 bulan → 28/29 Feb, bukan 2 Mar
+  return d.toISOString().slice(0, 10);
+}
+
 export function searchFromParams(params) {
   const d = defaultSearch();
   const service = params.get('service') === 'SELF_DRIVE' ? 'SELF_DRIVE' : 'WITH_DRIVER';
@@ -32,10 +42,15 @@ export function searchFromParams(params) {
     service,
     package: pkg,
     city: params.get('city') || d.city,
-    date: params.get('date') || d.date,
+    // Tanggal dari URL di luar rentang yang boleh (lewat atau > 3 bulan) → kembali ke default.
+    date: validDate(params.get('date')) || d.date,
     time: params.get('time') || d.time,
     qty: Math.min(MAX_QTY[pkg], Math.max(1, Number(params.get('qty')) || 1)),
   };
+}
+
+function validDate(s) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s || '') && s >= dateStrWIB(0) && s <= latestStartDate() ? s : null;
 }
 
 export function SearchForm({ initial, onSubmit, compact }) {
@@ -93,7 +108,7 @@ export function SearchForm({ initial, onSubmit, compact }) {
         </div>
         <div>
           <label htmlFor="search-date" className="field-label">{t('search.date')}</label>
-          <DatePicker id="search-date" value={v.date} min={earliest.date} today={dateStrWIB(0)} onChange={setDate} />
+          <DatePicker id="search-date" value={v.date} min={earliest.date} max={latestStartDate()} today={dateStrWIB(0)} onChange={setDate} />
         </div>
         <div>
           <label htmlFor="search-time" className="field-label">{t('search.time')} ({TZ_LABEL})</label>

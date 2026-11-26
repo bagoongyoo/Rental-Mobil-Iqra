@@ -572,7 +572,8 @@
   "datePicker": {
     "choose": "Pilih tanggal",
     "prevMonth": "Bulan sebelumnya",
-    "nextMonth": "Bulan berikutnya"
+    "nextMonth": "Bulan berikutnya",
+    "maxHint": "Pemesanan paling jauh 3 bulan ke depan (s.d. {{date}})"
   },
   "timePicker": {
     "choose": "Pilih jam",
