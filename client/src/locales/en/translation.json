@@ -579,5 +579,15 @@
     "forgotTitle": "Forgot password",
     "forgotText": "Enter your account email, then send a code to the registered email or WhatsApp.",
     "backToLogin": "Back to sign in"
+  },
+  "datePicker": {
+    "choose": "Choose a date",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
+  },
+  "timePicker": {
+    "choose": "Choose a time",
+    "hour": "Hour",
+    "minute": "Minute"
   }
 }
