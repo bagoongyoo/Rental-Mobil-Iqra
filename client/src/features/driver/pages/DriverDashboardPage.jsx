@@ -212,11 +212,14 @@ export function DriverDashboardPage() {
     coords,
     gpsError,
     lastSentAt,
+    lastRefreshAt,
     requestLocationPermission,
   } = useDriverLiveLocation({
     activeOrderId: ongoingOrder?.id || null,
     isTaskOngoing: Boolean(ongoingOrder),
     intervalMs: 10000,
+    // Siap Jalan → lokasi disegarkan & dikirim tiap 5 menit walau belum ada tugas.
+    shareLocation: Boolean(profile?.driverProfile?.isReady),
   });
 
   // Cleanup seluruh ObjectURL saat unmount
@@ -1048,6 +1051,13 @@ export function DriverDashboardPage() {
                   </p>
                 </div>
               </div>
+              {isGpsGranted && (
+                <p className="mt-2 text-[11px] text-[#9E9E99]">
+                  GPS disegarkan otomatis tiap 5 menit
+                  {lastRefreshAt ? ` · terakhir ${formatTimeShort(lastRefreshAt)}` : ''}
+                  {coords?.accuracy > 100 ? ' · sinyal lemah, coba di area terbuka' : ''}
+                </p>
+              )}
 
               {/* Baris Status Koneksi */}
               <div className="flex items-center justify-between text-xs px-0.5">

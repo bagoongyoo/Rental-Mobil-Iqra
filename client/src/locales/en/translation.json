@@ -203,7 +203,9 @@
     "pinSaved": "Precise location saved",
     "openMaps": "Open in Google Maps",
     "openPin": "Open precise point in Google Maps",
-    "pinBadge": "Precise point"
+    "pinBadge": "Precise point",
+    "sharpening": "Sharpening location… ±{{m}} m",
+    "lowAccuracy": "GPS accuracy is still low (±{{m}} m), maybe because you are indoors. Move the pin on the map to the exact spot."
   },
   "bookings": {
     "title": "My bookings",

@@ -197,7 +197,9 @@
     "pinSaved": "Titik lokasi akurat tersimpan",
     "openMaps": "Buka di Google Maps",
     "openPin": "Buka titik akurat di Google Maps",
-    "pinBadge": "Titik akurat"
+    "pinBadge": "Titik akurat",
+    "sharpening": "Mempertajam lokasi… ±{{m}} m",
+    "lowAccuracy": "Akurasi GPS masih rendah (±{{m}} m), mungkin karena di dalam gedung. Geser pin di peta ke titik yang tepat."
   },
   "bookings": {
     "title": "Pesanan saya",
