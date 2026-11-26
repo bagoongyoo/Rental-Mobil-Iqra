@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CarFront, ImagePlus, Pencil, Plus, Search, Trash2, Users } from 'lucide-react';
 import { Badge, Button, CarImage, EmptyState, ErrorNote, Field, Modal, Segmented, Select, Spinner, errorText, stockPhotoFor, toast } from '../../components/ui';
 import { formatIDR } from '../../lib/format';
+import { PLATE_PATTERN, PLATE_REGEX, formatPlate } from '../../lib/plate';
 import { toCarType } from '../../lib/adapters';
 import { compressImage } from '../../lib/compressImage';
 import * as A from './adminApi';
@@ -375,12 +376,25 @@ function UnitForm({ unit, types, onClose }) {
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate();
+          if (PLATE_REGEX.test(form.plateNumber)) save.mutate();
         }}
       >
         <ErrorNote error={save.error} />
         <Field label={t('admin.plate')} hint={t('admin.plateHint')}>
-          <input className="input font-mono uppercase" value={form.plateNumber} onChange={set('plateNumber')} placeholder="DN 1234 AB" required autoCapitalize="characters" />
+          {/* Aturan TNKB: 1–2 huruf wilayah, 1–4 angka, 0–3 huruf seri (lihat lib/plate.js) */}
+          <input
+            className="input font-mono uppercase"
+            value={form.plateNumber}
+            onChange={(e) => set('plateNumber')(formatPlate(e.target.value))}
+            placeholder="DN 1234 AB"
+            required
+            pattern={PLATE_PATTERN}
+            data-guard-pattern={t('admin.platePattern')}
+            maxLength={11}
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+          />
         </Field>
         <Group label={t('admin.type')}>
           <Select value={form.carTypeId} onChange={set('carTypeId')} options={types.map((ty) => ({ value: ty.id, label: ty.name }))} aria-label={t('admin.type')} />
