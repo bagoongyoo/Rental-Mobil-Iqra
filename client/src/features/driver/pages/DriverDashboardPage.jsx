@@ -1521,7 +1521,8 @@ export function DriverDashboardPage() {
                     return (
                       <div
                         key={slot.key}
-                        className={`bg-white rounded-[20px] p-3.5 border flex flex-col justify-between space-y-3 ${
+                        data-guard-anchor
+                        className={`relative bg-white rounded-[20px] p-3.5 border flex flex-col justify-between space-y-3 ${
                           entry?.isOverLimit
                             ? 'border-[#DC2626]'
                             : entry
@@ -1539,6 +1540,21 @@ export function DriverDashboardPage() {
                           onChange={(e) => handleSelectPhoto(slot.key, e)}
                           className="sr-only"
                           id={`driver-photo-${slot.key}`}
+                        />
+                        {/* Foto wajib: ikut validasi form, peringatan ditampilkan FormGuard. */}
+                        <input
+                          data-guard-proxy
+                          data-guard-message={
+                            entry?.isOverLimit
+                              ? `${slot.number} melebihi 1 MB, kompres dulu.`
+                              : `${slot.number} wajib diunggah.`
+                          }
+                          required
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          value={entry?.file && !entry.isOverLimit ? '1' : ''}
+                          onChange={() => {}}
+                          className="pointer-events-none absolute bottom-0 left-4 h-px w-px opacity-0"
                         />
 
                         {!entry ? (
@@ -1655,7 +1671,7 @@ export function DriverDashboardPage() {
 
                   <button
                     type="submit"
-                    disabled={!canSubmitPhotos}
+                    disabled={uploadingPhotos}
                     className={`min-h-[48px] w-full px-4 rounded-[14px] text-sm font-extrabold inline-flex items-center justify-center gap-2 transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1C1D1C] ${
                       canSubmitPhotos
                         ? 'bg-[#C4F135] hover:bg-[#b8e629] text-[#1C1D1C]'

@@ -267,7 +267,7 @@ function TransactionForm({ onClose }) {
       footer={
         <>
           <Button variant="secondary" className="flex-1" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button form="txn-form" type="submit" className="flex-1" loading={save.isPending} disabled={!form.amount}>{t('common.save')}</Button>
+          <Button form="txn-form" type="submit" className="flex-1" loading={save.isPending}>{t('common.save')}</Button>
         </>
       }
     >

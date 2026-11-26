@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Spinner, Toaster } from '../components/ui';
+import { FormGuard, Spinner, Toaster } from '../components/ui';
 import { RequireRole } from './RequireRole';
 import { CustomerLayout } from './CustomerLayout';
 import { HomePage } from '../features/customer/HomePage';
@@ -30,6 +30,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Toaster />
+        <FormGuard />
         <Suspense fallback={<Spinner className="min-h-dvh items-center" />}>
           <Routes>
             <Route element={<CustomerLayout />}>

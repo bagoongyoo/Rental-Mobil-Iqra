@@ -55,15 +55,23 @@ function RejectDialog({ title, onSubmit, onClose, loading }) {
       footer={
         <>
           <Button variant="secondary" className="flex-1" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button variant="danger" className="flex-1" loading={loading} disabled={reason.trim().length < 3} onClick={() => onSubmit(reason.trim())}>
+          <Button variant="danger" className="flex-1" type="submit" form="reject-form" loading={loading}>
             {t('admin.reject')}
           </Button>
         </>
       }
     >
-      <Field label={t('admin.rejectReason')} hint={t('admin.rejectHint')}>
-        <textarea className="input" rows={3} autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('admin.rejectPlaceholder')} maxLength={255} />
-      </Field>
+      <form
+        id="reject-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (reason.trim().length >= 3) onSubmit(reason.trim());
+        }}
+      >
+        <Field label={t('admin.rejectReason')} hint={t('admin.rejectHint')}>
+          <textarea className="input" rows={3} autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('admin.rejectPlaceholder')} required minLength={3} maxLength={255} />
+        </Field>
+      </form>
     </Modal>
   );
 }
@@ -226,7 +234,7 @@ function AddDriverDialog({ onClose }) {
       footer={
         <>
           <Button variant="secondary" className="flex-1" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button className="flex-1" type="submit" form="add-driver-form" loading={save.isPending} disabled={!valid}>{t('common.save')}</Button>
+          <Button className="flex-1" type="submit" form="add-driver-form" loading={save.isPending}>{t('common.save')}</Button>
         </>
       }
     >
@@ -239,19 +247,19 @@ function AddDriverDialog({ onClose }) {
         }}
       >
         <Field label={t('auth.name')}>
-          <input className="input" value={form.name} onChange={set('name')} autoComplete="off" maxLength={100} autoFocus />
+          <input className="input" value={form.name} onChange={set('name')} autoComplete="off" required minLength={2} maxLength={100} autoFocus />
         </Field>
         <Field label="Email">
-          <input className="input" type="email" value={form.email} onChange={set('email')} autoComplete="off" inputMode="email" />
+          <input className="input" type="email" value={form.email} onChange={set('email')} autoComplete="off" inputMode="email" required />
         </Field>
         <Field label={t('auth.phone')}>
-          <input className="input" type="tel" value={form.phone} onChange={set('phone')} inputMode="tel" placeholder="081234567890" maxLength={16} />
+          <input className="input" type="tel" value={form.phone} onChange={set('phone')} inputMode="tel" placeholder="081234567890" required minLength={9} maxLength={16} />
         </Field>
         <Field label={t('admin.simNumber')}>
-          <input className="input font-mono" value={form.licenseNumber} onChange={set('licenseNumber')} autoComplete="off" maxLength={30} />
+          <input className="input font-mono" value={form.licenseNumber} onChange={set('licenseNumber')} autoComplete="off" required minLength={5} maxLength={30} />
         </Field>
         <Field label={t('auth.password')} hint={t('admin.driverPasswordHint')}>
-          <input className="input" type="text" value={form.password} onChange={set('password')} autoComplete="new-password" maxLength={100} />
+          <input className="input" type="text" value={form.password} onChange={set('password')} autoComplete="new-password" required minLength={8} maxLength={100} />
         </Field>
         <ErrorNote error={save.error} />
       </form>
