@@ -39,6 +39,13 @@ async function getOrderDetail(req, res, next) {
       });
     }
 
+    if (req.user?.role === 'DRIVER' && order.driverId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Anda tidak memiliki akses ke tugas pesanan ini.',
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: order,
@@ -62,7 +69,43 @@ async function updateStatus(req, res, next) {
       });
     }
 
-    const updated = await ordersService.updateOrderStatus(req.params.id, status, { notes });
+    const order = await ordersService.getOrderById(req.params.id);
+    const role = req.user?.role;
+
+    if (role === 'CUSTOMER') {
+      if (order.customerId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Anda tidak memiliki akses ke pesanan ini.',
+        });
+      }
+      if (status !== 'CANCELLED') {
+        return res.status(403).json({
+          success: false,
+          message: 'Pelanggan hanya diizinkan membatalkan pesanan miliknya.',
+        });
+      }
+    } else if (role === 'DRIVER') {
+      if (order.driverId !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Pesanan ini tidak ditugaskan kepada Anda.',
+        });
+      }
+      if (!['ONGOING', 'COMPLETED'].includes(status)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Driver hanya diizinkan mengubah status menjadi ONGOING atau COMPLETED.',
+        });
+      }
+    } else if (role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Anda tidak memiliki izin mengubah status pesanan.',
+      });
+    }
+
+    const updated = await ordersService.updateOrderStatus(order.id, status, { notes });
     return res.status(200).json({
       success: true,
       message: `Status order berhasil diubah menjadi ${updated.status}`,

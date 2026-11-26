@@ -146,14 +146,84 @@ async function completeTask(req, res, next) {
   }
 }
 
+/**
+ * GET /api/drivers/me/photo
+ */
+async function getMyPhoto(req, res, next) {
+  try {
+    const filePath = await driversService.getDriverProfilePhotoPath(req.user.id);
+    res.set('Cache-Control', 'private, no-store');
+    return res.type('image/webp').sendFile(filePath);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+/**
+ * POST /api/drivers/me/tasks/:orderId/condition-photos
+ */
+async function uploadConditionPhotos(req, res, next) {
+  try {
+    const metadata = await driversService.saveConditionPhotos(
+      req.user.id,
+      req.params.orderId,
+      req.files,
+      { notes: req.body?.notes }
+    );
+    return res.status(201).json({
+      success: true,
+      message: `4 foto kondisi fisik untuk Order #${metadata.orderCode} berhasil disimpan.`,
+      data: metadata,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+/**
+ * GET /api/drivers/me/tasks/:orderId/condition-photos
+ */
+async function getConditionPhotos(req, res, next) {
+  try {
+    const metadata = await driversService.getConditionPhotos(req.user, req.params.orderId);
+    return res.status(200).json({
+      success: true,
+      data: metadata,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+/**
+ * GET /api/drivers/me/tasks/:orderId/condition-photos/:slot
+ */
+async function getConditionPhotoFile(req, res, next) {
+  try {
+    const filePath = await driversService.getConditionPhotoFilePath(
+      req.user,
+      req.params.orderId,
+      req.params.slot
+    );
+    res.set('Cache-Control', 'private, no-store');
+    return res.type('image/webp').sendFile(filePath);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   register,
   login,
   listDrivers,
   approveDriver,
   getMyProfile,
+  getMyPhoto,
   getMyTasks,
   setReadyStatus,
   startTask,
   completeTask,
+  uploadConditionPhotos,
+  getConditionPhotos,
+  getConditionPhotoFile,
 };

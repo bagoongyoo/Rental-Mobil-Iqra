@@ -4,20 +4,38 @@ const prisma = require('../config/db');
 
 let ioInstance = null;
 
+function isAllowedSocketOrigin(origin) {
+  if (!origin) return true;
+  const configuredOrigins = String(process.env.CLIENT_URL || 'http://localhost:5173')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  if (configuredOrigins.includes(origin)) return true;
+  if (process.env.NODE_ENV !== 'production') {
+    return /^https?:\/\/(localhost|127\.0\.0\.1):517\d$/.test(origin);
+  }
+  return false;
+}
+
 /**
  * Inisialisasi Socket.IO Server (Dev 3 - Realtime Lokasi Driver & Status Order)
  */
 function initSocket(httpServer) {
   ioInstance = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: (origin, callback) => {
+        if (isAllowedSocketOrigin(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Origin Socket.IO tidak diizinkan: ${origin}`));
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },
   });
 
-  // Middleware autentikasi JWT untuk koneksi Socket.IO
-  ioInstance.use((socket, next) => {
+  // Middleware autentikasi JWT untuk koneksi Socket.IO (sinkron dengan status akun Dev 1)
+  ioInstance.use(async (socket, next) => {
     try {
       const token =
         socket.handshake.auth?.token ||
@@ -30,7 +48,24 @@ function initSocket(httpServer) {
       }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.user = decoded; // { id, email, role }
+      const dbUser = await prisma.user.findUnique({
+        where: { id: Number(decoded.id) },
+        select: { id: true, email: true, role: true, name: true, isActive: true, isApproved: true },
+      });
+
+      if (!dbUser || !dbUser.isActive) {
+        return next(new Error('ACCOUNT_BLOCKED: Akun tidak aktif atau diblokir oleh Admin'));
+      }
+      if (dbUser.role === 'DRIVER' && !dbUser.isApproved) {
+        return next(new Error('DRIVER_UNAPPROVED: Akun driver belum disetujui oleh Admin'));
+      }
+
+      socket.user = {
+        id: dbUser.id,
+        email: dbUser.email,
+        role: dbUser.role,
+        name: dbUser.name,
+      };
       return next();
     } catch (err) {
       return next(new Error('AUTH_INVALID: Token JWT tidak valid atau kedaluwarsa'));
@@ -65,9 +100,10 @@ function initSocket(httpServer) {
           return;
         }
 
-        const { orderId, lat, lng } = payload || {};
+        const { orderId, lat, lng, accuracy } = payload || {};
         const parsedLat = Number(lat);
         const parsedLng = Number(lng);
+        const parsedAccuracy = accuracy != null && !Number.isNaN(Number(accuracy)) ? Number(accuracy) : null;
 
         if (Number.isNaN(parsedLat) || Number.isNaN(parsedLng)) {
           if (typeof ack === 'function') ack({ success: false, message: 'Koordinat lat/lng tidak valid' });
@@ -107,9 +143,11 @@ function initSocket(httpServer) {
 
         const locationUpdate = {
           driverId: Number(userId),
+          name: socket.user.name || null,
           orderId: parsedOrderId,
           lat: parsedLat,
           lng: parsedLng,
+          accuracy: parsedAccuracy,
           timestamp: now.toISOString(),
         };
 
@@ -129,7 +167,13 @@ function initSocket(httpServer) {
     });
 
     socket.on('disconnect', () => {
-      // Koneksi socket terputus
+      if (role === 'DRIVER') {
+        ioInstance.to('role:ADMIN').emit('driver:offline', {
+          driverId: Number(userId),
+          name: socket.user.name || null,
+          at: new Date().toISOString(),
+        });
+      }
     });
   });
 

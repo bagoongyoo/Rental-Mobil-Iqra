@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { connectSocket, emitDriverLocation } from '../../../lib/socket';
+import { useAuth } from '../../../lib/auth';
 import { sendDriverLocationHttpApi } from '../api/driverApi';
 
 /**
@@ -104,7 +105,8 @@ export function useDriverLiveLocation({ activeOrderId = null, isTaskOngoing = fa
       return undefined;
     }
 
-    connectSocket();
+    const activeToken = useAuth.getState()?.token || localStorage.getItem('token');
+    connectSocket(activeToken);
 
     const sendCurrentLocation = async () => {
       try {
