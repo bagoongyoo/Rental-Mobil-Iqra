@@ -584,5 +584,10 @@
     "choose": "Choose a date",
     "prevMonth": "Previous month",
     "nextMonth": "Next month"
+  },
+  "timePicker": {
+    "choose": "Choose a time",
+    "hour": "Hour",
+    "minute": "Minute"
   }
 }

@@ -573,5 +573,10 @@
     "choose": "Pilih tanggal",
     "prevMonth": "Bulan sebelumnya",
     "nextMonth": "Bulan berikutnya"
+  },
+  "timePicker": {
+    "choose": "Pilih jam",
+    "hour": "Jam",
+    "minute": "Menit"
   }
 }
