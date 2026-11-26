@@ -18,10 +18,8 @@ import { LoginPage, RegisterPage } from '../features/customer/AuthPages';
 const DriverDashboardPage = lazy(() => import('../features/driver').then((m) => ({ default: m.DriverDashboardPage })));
 const DriverRegisterPage = lazy(() => import('../features/driver').then((m) => ({ default: m.DriverRegisterPage })));
 
-// Panel admin dibuat Dev 1 (features/admin). Sampai siap, tampilkan halaman sementara.
-function AdminPlaceholder() {
-  return <p className="p-6 text-center text-sm text-slate-500">Panel admin sedang disiapkan (Dev 1).</p>;
-}
+// Panel admin dari Dev 1 (features/admin), juga dimuat terpisah.
+const AdminApp = lazy(() => import('../features/admin'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
@@ -48,7 +46,7 @@ export function App() {
             </Route>
             <Route path="driver/daftar" element={<DriverRegisterPage />} />
             <Route path="driver/*" element={<RequireRole role="DRIVER"><DriverDashboardPage /></RequireRole>} />
-            <Route path="admin/*" element={<RequireRole role="ADMIN"><AdminPlaceholder /></RequireRole>} />
+            <Route path="admin/*" element={<RequireRole role="ADMIN"><AdminApp /></RequireRole>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

@@ -31,10 +31,11 @@ app.get('/api/health', (req, res) => {
 // ==========================================
 // Dev 1: auth, users, cars, finance, maintenance
 app.use('/api/auth', require('./modules/auth/auth.routes'));
-// app.use('/api/users', require('./modules/users/users.routes'));
+app.use('/api/users', require('./modules/users/users.routes'));
 app.use('/api/cars', require('./modules/cars/cars.routes'));
-// app.use('/api/finance', require('./modules/finance/finance.routes'));
-// app.use('/api/maintenance', require('./modules/maintenance/maintenance.routes'));
+app.use('/api/finance', require('./modules/finance/finance.routes'));
+app.use('/api/maintenance', require('./modules/maintenance/maintenance.routes'));
+app.use('/api/dashboard', require('./modules/dashboard/dashboard.routes'));
 
 // Dev 2: bookings, payments, documents
 app.use('/api/bookings', require('./modules/bookings/bookings.routes'));
