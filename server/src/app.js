@@ -37,9 +37,9 @@ app.use('/api/auth', require('./modules/auth/auth.routes'));
 // app.use('/api/maintenance', require('./modules/maintenance/maintenance.routes'));
 
 // Dev 2: bookings, payments, documents
-// app.use('/api/bookings', require('./modules/bookings/bookings.routes'));
-// app.use('/api/payments', require('./modules/payments/payments.routes'));
-// app.use('/api/documents', require('./modules/documents/documents.routes'));
+app.use('/api/bookings', require('./modules/bookings/bookings.routes'));
+app.use('/api/payments', require('./modules/payments/payments.routes'));
+app.use('/api/documents', require('./modules/documents/documents.routes'));
 
 // Dev 3: availability, orders, drivers, tracking
 app.use('/api/availability', require('./modules/availability/availability.routes'));

@@ -37,3 +37,31 @@ Centang `[x]` saat selesai dan ikutkan perubahan file ini di commit kamu.
 - Auth dan model user dari Dev 1
 - Ketersediaan unit dan status order dari Dev 3
 - Semua teks UI masuk file `locales/` (tim lain menambah key, kamu yang merapikan)
+
+## Dashboard pelanggan (`/dasbor`)
+- [x] API ringkasan `GET /api/bookings/dashboard` (sewa berjalan, jadwal terdekat, tagihan, dokumen, statistik)
+- [x] Halaman dashboard: sapaan, statistik, tagihan + hitung mundur, sewa berjalan (progres, driver, lacak), jadwal berikutnya
+- [x] Pesan cepat (dengan driver / lepas kunci, pesan lagi mobil terakhir), pesanan terakhir
+- [x] Status verifikasi KTP/SIM, kelengkapan profil, tombol WhatsApp admin
+- [x] Menu Dasbor di navigasi, pelanggan diarahkan ke `/dasbor` setelah masuk/daftar
+- [x] Lokasi Palu, Sulawesi Tengah: kota default, titik jemput populer di checkout, teks beranda, zona waktu WITA
+
+## Foto mobil & lokasi akurat
+- [x] Foto contoh bawaan per model (Wikimedia Commons, WebP 800/400 px) di `client/public/cars/`, halaman `/kredit-foto`
+- [x] Checkout: lokasi akurat (GPS "Gunakan lokasi saya" + pin di peta yang bisa digeser) atau alamat manual
+- [x] Alamat terisi otomatis dari titik peta (OpenStreetMap Nominatim), tetap bisa diedit + patokan
+- [x] Simpan `pickupLat`/`pickupLng` di pesanan, validasi area layanan Palu (maks. 150 km)
+- [x] Tampilkan titik di detail pesanan pelanggan, admin (link Google Maps), driver (navigasi ke koordinat)
+
+## Harga & biaya dari admin (sisi pelanggan)
+- [x] Checkout menampilkan rincian: sewa, biaya layanan, biaya antar unit (lepas kunci), total (dari `GET /api/cars/fees`)
+- [x] Total pesanan di server = sewa + biaya layanan + biaya antar; item Midtrans ikut rinci
+- [x] Detail pesanan menampilkan rincian biaya jika ada
+- [x] Hasil cari menampilkan deskripsi tipe yang diisi admin
+
+## Keamanan akun
+- [x] Ganti kata sandi dengan kode verifikasi 6 angka lewat email (Gmail/SMTP) atau WhatsApp (Fonnte), mode simulasi untuk development
+- [x] Lupa kata sandi di halaman masuk (`/lupa-sandi`)
+- [x] Kode berlaku 10 menit, maks. 5x salah, kirim ulang tiap 60 detik, maks. 5 kode/jam; perangkat lain otomatis keluar
+- [x] Hapus akun: ditolak jika ada pesanan Dibayar/Dikonfirmasi/Berjalan; tagihan belum dibayar dibatalkan
+- [x] Soft delete: akun hilang di sisi pelanggan, data & riwayat tetap di database untuk admin

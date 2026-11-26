@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b6b55" />
+    <meta name="description" content="Rental Mobil Iqra: sewa mobil dengan driver atau lepas kunci, harga jelas, pesan online." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Rental Mobil Iqra</title>
+    <script>
+      // Pasang tema sebelum render supaya tidak berkedip putih di mode gelap.
+      try {
+        var p = JSON.parse(localStorage.getItem('iqra-prefs') || '{}').state || {};
+        var dark = p.theme === 'dark' || ((!p.theme || p.theme === 'system') && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
