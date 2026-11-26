@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const { z } = require('zod');
 const prisma = require('../../config/db');
 const { requireAuth, requireRole } = require('../../middleware/auth.middleware');
+const { zName, zEmail, zPhone } = require('../../utils/identity');
 
 const router = Router();
 router.use(requireAuth, requireRole('ADMIN'));
@@ -62,9 +63,9 @@ router.get('/', async (req, res) => {
 // Akun driver yang dibuat admin langsung disetujui (isApproved + approvalStatus APPROVED),
 // jadi driver bisa langsung masuk di aplikasi driver (modul Dev 3) tanpa proses persetujuan.
 const createDriverSchema = z.object({
-  name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(100),
-  email: z.string().trim().toLowerCase().email('Format email tidak valid'),
-  phone: z.string().trim().regex(/^(\+62|62|0)8\d{7,12}$/, 'No. HP tidak valid (contoh: 081234567890)'),
+  name: zName,
+  email: zEmail,
+  phone: zPhone,
   password: z.string().min(8, 'Kata sandi minimal 8 karakter').max(100),
   licenseNumber: z.string().trim().min(5, 'No. SIM minimal 5 karakter').max(30),
   address: z.string().trim().max(255).optional(),

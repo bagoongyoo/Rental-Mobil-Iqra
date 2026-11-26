@@ -12,7 +12,8 @@
 // Atribut opsional:
 //   data-guard-message="..."  pesan khusus (untuk semua jenis kesalahan)
 //   data-guard-pattern="..."  pesan khusus bila isian tidak cocok dengan atribut `pattern`
-//   data-guard-anchor         pada pembungkus yang diberi garis merah (untuk proxy / input tersembunyi)
+//   data-guard-anchor         pada pembungkus yang diberi garis merah (untuk proxy / input tersembunyi);
+//                             ="after" → pesan ditaruh setelah pembungkus, bukan di dalamnya
 //   data-guard-target         pada tombol pemicu kontrol (Select/DatePicker) di sebelah proxy
 import { useEffect } from 'react';
 import i18n from '../../lib/i18n';
@@ -83,7 +84,8 @@ function makeMessage(highlight) {
   const parent = highlight.parentElement;
   // Pembungkus berisi hiasan absolut (mis. "Rp", ikon cari) jangan sampai ikut memanjang.
   const decorated = [...parent.children].some((c) => c !== highlight && getComputedStyle(c).position === 'absolute');
-  if (highlight.hasAttribute('data-guard-target') || (decorated && highlight.matches('input, textarea, select'))) parent.after(b);
+  if (highlight.getAttribute('data-guard-anchor') === 'after') highlight.after(b); // kotak gabungan, mis. PhoneInput
+  else if (highlight.hasAttribute('data-guard-target') || (decorated && highlight.matches('input, textarea, select'))) parent.after(b);
   else if (highlight.matches('input, textarea, select, button')) highlight.after(b);
   else highlight.appendChild(b);
   return b;

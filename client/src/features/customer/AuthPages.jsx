@@ -4,7 +4,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { homeFor, useAuth } from '../../lib/auth';
-import { Button, ErrorNote, Field } from '../../components/ui';
+import { Button, ErrorNote, Field, PhoneInput } from '../../components/ui';
+import { EMAIL_PATTERN, NAME_PATTERN, cleanEmail, cleanName } from '../../lib/identity';
 
 function AuthShell({ title, subtitle, children, footer }) {
   return (
@@ -86,9 +87,40 @@ export function RegisterPage() {
           m.mutate();
         }}
       >
-        <Field label={t('auth.name')} error={err.name}><input className="input" autoComplete="name" required value={form.name} onChange={set('name')} /></Field>
-        <Field label="Email" error={err.email}><input className="input" type="email" autoComplete="email" required value={form.email} onChange={set('email')} /></Field>
-        <Field label={t('auth.phone')} error={err.phone}><input className="input" type="tel" autoComplete="tel" required value={form.phone} onChange={set('phone')} placeholder="08xxxxxxxxxx" /></Field>
+        {/* Nama hanya huruf & spasi; email lengkap; telepon "+62 812 2941 9850" (lib/identity) */}
+        <Field label={t('auth.name')} error={err.name} hint={t('auth.nameHint')}>
+          <input
+            className="input"
+            autoComplete="name"
+            required
+            minLength={2}
+            maxLength={100}
+            pattern={NAME_PATTERN}
+            data-guard-pattern={t('validation.name')}
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: cleanName(e.target.value) })}
+            onBlur={() => setForm((f) => ({ ...f, name: f.name.trim() }))}
+          />
+        </Field>
+        <Field label="Email" error={err.email}>
+          <input
+            className="input"
+            type="email"
+            autoComplete="email"
+            required
+            pattern={EMAIL_PATTERN}
+            data-guard-pattern={t('validation.emailFull')}
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: cleanEmail(e.target.value) })}
+            placeholder="nama@email.com"
+          />
+        </Field>
+        {/* <div>, bukan <label>: supaya klik teks label tidak membuka daftar negara */}
+        <div>
+          <label htmlFor="register-phone" className="field-label">{t('auth.phone')}</label>
+          <PhoneInput id="register-phone" required value={form.phone} onChange={(phone) => setForm((f) => ({ ...f, phone }))} />
+          {err.phone ? <span className="mt-1 block text-xs text-red-600">{err.phone}</span> : <span className="mt-1 block text-xs text-slate-500">{t('auth.phoneHint')}</span>}
+        </div>
         <Field label={t('auth.password')} error={err.password} hint={t('auth.passwordHint')}><input className="input" type="password" autoComplete="new-password" required minLength={8} value={form.password} onChange={set('password')} /></Field>
         <ErrorNote error={m.error?.details ? null : m.error} />
         <Button type="submit" size="lg" className="w-full" loading={m.isPending}>{t('auth.registerButton')}</Button>

@@ -4,7 +4,8 @@ import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileCheck2, Search, UserPlus, UserRound, Users } from 'lucide-react';
-import { Badge, Button, EmptyState, ErrorNote, Field, Modal, Segmented, Spinner, errorText, toast } from '../../components/ui';
+import { Badge, Button, EmptyState, ErrorNote, Field, Modal, PhoneInput, Segmented, Spinner, errorText, toast } from '../../components/ui';
+import { EMAIL_PATTERN, NAME_PATTERN, cleanEmail, cleanName } from '../../lib/identity';
 import { formatDate, timeAgo } from '../../lib/format';
 import * as A from './adminApi';
 import { Chips, DocImage, PageHeader } from './ui';
@@ -201,7 +202,7 @@ function AddDriverDialog({ onClose }) {
   const refresh = useRefresh();
   const [form, setForm] = useState(EMPTY_DRIVER);
   const [created, setCreated] = useState(null);
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v?.target ? v.target.value : v }));
 
   const save = useMutation({
     mutationFn: () => A.createDriver(form),
@@ -247,14 +248,37 @@ function AddDriverDialog({ onClose }) {
         }}
       >
         <Field label={t('auth.name')}>
-          <input className="input" value={form.name} onChange={set('name')} autoComplete="off" required minLength={2} maxLength={100} autoFocus />
+          <input
+            className="input"
+            value={form.name}
+            onChange={(e) => set('name')(cleanName(e.target.value))}
+            onBlur={() => set('name')(form.name.trim())}
+            autoComplete="off"
+            required
+            minLength={2}
+            maxLength={100}
+            pattern={NAME_PATTERN}
+            data-guard-pattern={t('validation.name')}
+            autoFocus
+          />
         </Field>
         <Field label="Email">
-          <input className="input" type="email" value={form.email} onChange={set('email')} autoComplete="off" inputMode="email" required />
+          <input
+            className="input"
+            type="email"
+            value={form.email}
+            onChange={(e) => set('email')(cleanEmail(e.target.value))}
+            autoComplete="off"
+            inputMode="email"
+            required
+            pattern={EMAIL_PATTERN}
+            data-guard-pattern={t('validation.emailFull')}
+          />
         </Field>
-        <Field label={t('auth.phone')}>
-          <input className="input" type="tel" value={form.phone} onChange={set('phone')} inputMode="tel" placeholder="081234567890" required minLength={9} maxLength={16} />
-        </Field>
+        <div>
+          <label htmlFor="add-driver-phone" className="field-label">{t('auth.phone')}</label>
+          <PhoneInput id="add-driver-phone" required value={form.phone} onChange={set('phone')} />
+        </div>
         <Field label={t('admin.simNumber')}>
           <input className="input font-mono" value={form.licenseNumber} onChange={set('licenseNumber')} autoComplete="off" required minLength={5} maxLength={30} />
         </Field>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Crosshair, LocateFixed, MapPin, PencilLine, TriangleAlert, X } from 'lucide-react';
 import { Button, Field, Segmented, Spinner } from '../../components/ui';
 import { distanceFromPaluKm, FAR_FROM_PALU_KM, PICKUP_POINTS, reverseGeocode } from './palu';
+import { LOW_ACCURACY_M, getPreciseLocation } from '../../lib/preciseLocation';
 
 const PickupMap = lazy(() => import('./PickupMap'));
 
@@ -14,6 +15,7 @@ export const emptyLocation = () => ({ mode: 'pin', address: '', lat: null, lng: 
 export function PickupLocation({ service, city, value, onChange, error }) {
   const { t, i18n } = useTranslation();
   const [locating, setLocating] = useState(false);
+  const [liveAccuracy, setLiveAccuracy] = useState(null); // akurasi titik terbaik selama mencari
   const [gpsError, setGpsError] = useState(null);
   const [geocoding, setGeocoding] = useState(false);
   const latest = useRef(value);
@@ -41,21 +43,26 @@ export function PickupLocation({ service, city, value, onChange, error }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.lat, value.lng]);
 
-  const locate = () => {
+  // GPS seakurat mungkin: pin langsung ditaruh di titik pertama, lalu dipertajam
+  // setiap ada titik yang lebih akurat sampai ≤ 20 m atau 20 detik (lib/preciseLocation).
+  const locate = async () => {
     setGpsError(null);
     if (!('geolocation' in navigator)) return setGpsError(t('pickup.gpsUnsupported'));
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocating(false);
-        set({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) });
-      },
-      (err) => {
-        setLocating(false);
-        setGpsError(err.code === 1 ? t('pickup.gpsDenied') : t('pickup.gpsFailed'));
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
-    );
+    try {
+      const fix = await getPreciseLocation({
+        onProgress: (f) => {
+          setLiveAccuracy(Math.round(f.accuracy));
+          set({ lat: f.lat, lng: f.lng, accuracy: Math.round(f.accuracy) });
+        },
+      });
+      set({ lat: fix.lat, lng: fix.lng, accuracy: Math.round(fix.accuracy) });
+    } catch (err) {
+      setGpsError(err.code === 1 ? t('pickup.gpsDenied') : t('pickup.gpsFailed'));
+    } finally {
+      setLocating(false);
+      setLiveAccuracy(null);
+    }
   };
 
   return (
@@ -81,9 +88,16 @@ export function PickupLocation({ service, city, value, onChange, error }) {
       {value.mode === 'pin' && (
         <div className="space-y-2">
           <Button type="button" variant="soft" className="w-full" loading={locating} onClick={locate}>
-            {!locating && <Crosshair className="h-4 w-4" />} {locating ? t('pickup.locating') : t('pickup.useMyLocation')}
+            {!locating && <Crosshair className="h-4 w-4" />}{' '}
+            {locating ? (liveAccuracy ? t('pickup.sharpening', { m: liveAccuracy }) : t('pickup.locating')) : t('pickup.useMyLocation')}
           </Button>
-          {gpsError && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">{gpsError}</p>}
+          {/* Akurasi masih rendah (mis. di dalam gedung) → minta geser pin manual */}
+          {!locating && hasPin && value.accuracy > LOW_ACCURACY_M && (
+            <p className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+              <TriangleAlert className="h-4 w-4 shrink-0" />{t('pickup.lowAccuracy', { m: value.accuracy })}
+            </p>
+          )}
+          {gpsError &&<p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">{gpsError}</p>}
 
           <Suspense fallback={<div className="grid h-56 place-items-center rounded-xl bg-slate-100 dark:bg-slate-800"><Spinner className="py-0" /></div>}>
             <PickupMap lat={value.lat} lng={value.lng} onPick={(lat, lng) => set({ lat, lng, accuracy: null })} />
