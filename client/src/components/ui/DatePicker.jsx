@@ -24,10 +24,11 @@ function capitalize(text) {
 /**
  * @param {string} value   tanggal terpilih "YYYY-MM-DD"
  * @param {string} min     tanggal paling awal yang boleh dipilih
+ * @param {string} [max]   tanggal paling akhir yang boleh dipilih (mis. batas 3 bulan ke depan)
  * @param {string} today   "hari ini" menurut zona waktu operasional (WITA)
  * @param {(v: string) => void} onChange
  */
-export function DatePicker({ value, min, today, onChange, id, className = '' }) {
+export function DatePicker({ value, min, max, today, onChange, id, className = '' }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'id-ID';
   const autoId = useId();
@@ -36,6 +37,7 @@ export function DatePicker({ value, min, today, onChange, id, className = '' }) 
   const [view, setView] = useState(monthKey(value || today));
   const [focused, setFocused] = useState(value || today);
   const rootRef = useRef(null);
+  const outOfRange = (s) => Boolean((min && s < min) || (max && s > max));
   const gridRef = useRef(null);
 
   // Tutup saat klik di luar atau tekan Esc.
@@ -64,7 +66,7 @@ export function DatePicker({ value, min, today, onChange, id, className = '' }) 
   };
 
   const pick = (s) => {
-    if (min && s < min) return;
+    if (outOfRange(s)) return;
     onChange(s);
     setOpen(false);
   };
@@ -72,6 +74,7 @@ export function DatePicker({ value, min, today, onChange, id, className = '' }) 
   const moveFocus = (n) => {
     let next = addDays(focused, n);
     if (min && next < min) next = min;
+    if (max && next > max) next = max;
     setFocused(next);
     setView(monthKey(next));
   };
@@ -104,6 +107,7 @@ export function DatePicker({ value, min, today, onChange, id, className = '' }) 
   const displayShort = value ? fmt({ day: 'numeric', month: 'short', year: 'numeric' }).format(toDate(value)) : '';
   const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   const canGoBack = !min || shiftMonth(view, -1) >= monthKey(min);
+  const canGoNext = !max || shiftMonth(view, 1) <= monthKey(max);
 
   return (
     <div ref={rootRef} className={`relative ${className}`}>
@@ -141,8 +145,9 @@ export function DatePicker({ value, min, today, onChange, id, className = '' }) 
             <button
               type="button"
               onClick={() => setView(shiftMonth(view, 1))}
+              disabled={!canGoNext}
               aria-label={t('datePicker.nextMonth')}
-              className="grid h-9 w-9 place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="grid h-9 w-9 place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-30 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -155,7 +160,7 @@ export function DatePicker({ value, min, today, onChange, id, className = '' }) 
           <div ref={gridRef} role="grid" className="grid grid-cols-7 gap-0.5" onKeyDown={onGridKey}>
             {cells.map((s, i) => {
               if (!s) return <span key={`e${i}`} />;
-              const disabled = Boolean(min && s < min);
+              const disabled = outOfRange(s);
               const selected = s === value;
               const isToday = s === today;
               return (
@@ -182,6 +187,12 @@ export function DatePicker({ value, min, today, onChange, id, className = '' }) 
             })}
           </div>
 
+          {max && (
+            <p className="mt-2 text-center text-[11px] text-slate-500">
+              {t('datePicker.maxHint', { date: fmt({ day: 'numeric', month: 'long', year: 'numeric' }).format(toDate(max)) })}
+            </p>
+          )}
+
           <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
             {[0, 1].map((n) => {
               const s = addDays(today, n);
@@ -191,7 +202,7 @@ export function DatePicker({ value, min, today, onChange, id, className = '' }) 
                   key={n}
                   type="button"
                   onClick={() => pick(s)}
-                  disabled={Boolean(min && s < min)}
+                  disabled={outOfRange(s)}
                   className={`h-8 flex-1 rounded-full border text-xs font-semibold transition disabled:opacity-40 ${
                     active
                       ? 'border-brand-600 bg-brand-50 text-brand-800 dark:border-brand-500 dark:bg-brand-950 dark:text-brand-200'
