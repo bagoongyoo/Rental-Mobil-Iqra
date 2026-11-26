@@ -30,7 +30,7 @@ app.get('/api/health', (req, res) => {
 // REGISTRASI ROUTES MODUL PER DEVELOPER
 // ==========================================
 // Dev 1: auth, users, cars, finance, maintenance
-// app.use('/api/auth', require('./modules/auth/auth.routes'));
+app.use('/api/auth', require('./modules/auth/auth.routes'));
 // app.use('/api/users', require('./modules/users/users.routes'));
 // app.use('/api/cars', require('./modules/cars/cars.routes'));
 // app.use('/api/finance', require('./modules/finance/finance.routes'));

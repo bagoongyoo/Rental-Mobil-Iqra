@@ -6,10 +6,10 @@ Folder utama: `client/src/features/admin/`, `server/src/modules/{auth,users,cars
 Centang `[x]` saat selesai dan ikutkan perubahan file ini di commit kamu.
 
 ## Sprint 0 (dikerjakan pertama, PR ke `main`)
-- [ ] Inisialisasi `server/`: Express, struktur `src/`, `npm run dev` (nodemon), `.env.example`
-- [ ] Prisma + MySQL: koneksi, schema awal `User` (role `ADMIN`/`CUSTOMER`/`DRIVER`), `CarType`, `CarUnit`
-- [ ] Auth: register, login, JWT, middleware `requireAuth` + `requireRole`
-- [ ] Seed akun admin pertama
+- [x] Inisialisasi `server/`: Express, struktur `src/`, `npm run dev` (nodemon), `.env.example` (dikerjakan Dev 3, PR #2)
+- [x] Prisma + MySQL: koneksi, schema awal `User` (role `ADMIN`/`CUSTOMER`/`DRIVER`), `CarType`, `CarUnit` (schema dari Dev 3, migrasi `init` oleh Dev 1)
+- [x] Auth: register, login, JWT, middleware `requireAuth` + `requireRole` (middleware dari Dev 3)
+- [x] Seed akun admin pertama (`npm run seed`)
 
 ## Panel admin
 - [ ] Layout admin (sidebar/bottom-nav untuk HP), dashboard ringkas: order hari ini, unit tersedia, pemasukan bulan ini
